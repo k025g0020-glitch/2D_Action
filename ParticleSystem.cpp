@@ -31,7 +31,6 @@ void ParticleSystem::Initialize(Model* sphereModel, Model* starModel, Camera* ca
 	starModel_ = starModel;
 	camera_ = camera;
 
-	particles_.resize(kMaxParticles);
 	for (Particle& particle : particles_) {
 		particle.worldTransform.Initialize();
 		particle.objectColor.Initialize();

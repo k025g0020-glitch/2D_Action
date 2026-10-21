@@ -1,6 +1,6 @@
 #pragma once
 #include "KamataEngine.h"
-#include <vector>
+#include <array>
 
 // 砂ぼこり・キラキラ・紙吹雪などの小さなパーティクルをまとめて管理する
 // 決まった数の粒を使い回し、空いている粒から順に使う
@@ -71,7 +71,8 @@ private:
 	void Emit(const EmitDesc& desc);
 	Particle* FindFreeParticle();
 
-	std::vector<Particle> particles_;
+	// WorldTransform と ObjectColor はコピーできないので、要素を動かさない std::array で持つ
+	std::array<Particle, kMaxParticles> particles_;
 	uint32_t nextIndex_ = 0;
 
 	KamataEngine::Model* sphereModel_ = nullptr;
