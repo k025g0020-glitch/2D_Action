@@ -67,7 +67,6 @@ void TitleScene::Draw() {
 	text_.Print("A / D : MOVE", 640.0f, 520.0f, 28.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
 	text_.Print("SPACE / W : JUMP", 640.0f, 560.0f, 28.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
 	text_.Print("SHIFT : DASH", 640.0f, 600.0f, 28.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
-	text_.Print("DASH AND JUMP 3 TIMES IN A ROW FOR A TRIPLE JUMP", 640.0f, 650.0f, 18.0f, {1.0f, 0.9f, 0.3f, 1.0f}, BitmapText::Align::kCenter);
 
 	text_.Draw();
 
