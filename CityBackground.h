@@ -6,7 +6,7 @@
 
 // 背景：夕暮れの空と、奥行きのある3層のビル群
 // ビルはステージごとに生成し、カメラの動きに対して遠い層ほどゆっくり動く（視差）
-// 層と層の間に半透明の霧をはさみ、遠いほどかすんで見えるようにする（手前のキャラクターを目立たせるため）
+// 層と層の間に半透明の暗い霧をはさみ、遠いほど闇に沈んで見えるようにする（手前のキャラクターを目立たせるため）
 class CityBackground {
 public:
 	~CityBackground();
@@ -67,8 +67,8 @@ private:
 	    {0.4f, 20.0f, {0.24f, 0.23f, 0.33f, 1.0f}, 0.35f, 0.55f, 2.0f, 5.0f, 0.3f},
 	}};
 
-	// 霧の色（夕暮れの空になじむ薄紫）
-	static inline const KamataEngine::Vector3 kFogColor = {0.62f, 0.56f, 0.74f};
+	// 霧の色（夜の街に沈むような、黒に近い濃紺）
+	static inline const KamataEngine::Vector3 kFogColor = {0.05f, 0.05f, 0.11f};
 	// 霧の板を、その層のビルからどれだけ手前に置くか
 	static inline const float kFogOffsetZ = 10.0f;
 

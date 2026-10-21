@@ -15,7 +15,8 @@ void GameScene::Initialize(GameSession* session) {
 	model_ = Model::CreateFromOBJ("player", true);
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 	modelInvincibleEnemy_ = Model::CreateFromOBJ("shieldEnemy", true);
-	modelBlock_ = Model::CreateFromOBJ("block", true);
+	// 足場：街の屋上らしいコンクリートと鉄骨のブロック
+	modelBlock_ = Model::CreateFromOBJ("cityblock", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
 	modelGoalStar_ = Model::CreateFromOBJ("star", true);
 	modelSmoke_ = Model::CreateFromOBJ("smoke", true);

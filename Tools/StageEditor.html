@@ -595,15 +595,14 @@ details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
     const cx = x + s / 2, cy = y + s / 2;
     switch (v) {
       case T.BLOCK: {
-        g.fillStyle = "#b8662f"; g.fillRect(x, y, s, s);
-        g.strokeStyle = "#7a3d17"; g.lineWidth = Math.max(1, s / 14);
-        g.beginPath();
-        g.moveTo(x, y + s / 2); g.lineTo(x + s, y + s / 2);
-        g.moveTo(x + s / 2, y); g.lineTo(x + s / 2, y + s / 2);
-        g.moveTo(x + s / 4, y + s / 2); g.lineTo(x + s / 4, y + s);
-        g.moveTo(x + (s * 3) / 4, y + s / 2); g.lineTo(x + (s * 3) / 4, y + s);
-        g.stroke();
-        g.strokeStyle = "#5c2c0e"; g.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+        // ゲームの足場（コンクリートと鉄骨のパネル）と同じ見た目
+        g.fillStyle = "#9698a2"; g.fillRect(x, y, s, s);
+        g.fillStyle = "#cdd0da"; g.fillRect(x, y, s, s * 0.07);
+        g.fillStyle = "#525462"; g.fillRect(x, y + s * 0.93, s, s * 0.07);
+        g.fillStyle = "#707380"; g.fillRect(x, y, s * 0.05, s); g.fillRect(x + s * 0.95, y, s * 0.05, s);
+        g.fillStyle = "#60687c"; g.fillRect(x + s * 0.05, y + s * 0.41, s * 0.9, s * 0.18);
+        g.fillStyle = "#d7dae2";
+        for (const [bx, by] of [[0.16, 0.16], [0.84, 0.16], [0.16, 0.84], [0.84, 0.84]]) g.fillRect(x + s * bx - s * 0.04, y + s * by - s * 0.04, s * 0.08, s * 0.08);
         break;
       }
       case T.COIN: {
