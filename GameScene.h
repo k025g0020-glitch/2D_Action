@@ -32,6 +32,7 @@ public:
 private:
 	void UpdatePlayPhase();
 	void UpdateDeathPhase();
+	bool IsGoalReached();
 
 	static inline const float kFadeDuration = 1.0f;
 
@@ -40,12 +41,15 @@ private:
 	bool finished_ = false;
 
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
+	KamataEngine::WorldTransform goalPole_;
+	KamataEngine::WorldTransform goalFlag_;
 	uint32_t textureHandle_ = 0;
 
 	KamataEngine::Model* model_ = nullptr;
 	KamataEngine::Model* modelBlock_ = nullptr;
 	KamataEngine::Model* modelSkydome_ = nullptr;
 	KamataEngine::Model* modelEnemy_ = nullptr;
+	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
 
 	KamataEngine::Camera camera_;
@@ -59,5 +63,6 @@ private:
 	Fade* fade_ = nullptr;
 
 	bool isDebugCameraActive_ = false;
+	bool isCleared_ = false;
 	KamataEngine::DebugCamera* debugCamera_ = nullptr;
 };

@@ -24,6 +24,7 @@ public:
 	AABB GetAABB();
 
 	void OnCollision(const Enemy* enemy);
+	void BounceFromEnemy();
 
 	bool IsDead() const { return isDead_; }
 
@@ -97,6 +98,7 @@ private:
 	static inline const float kLimitFallSpeed = 0.5f;
 	// ジャンプ初速（上方向）
 	static inline const float kJumpAcceleration = 0.8f;
+	static inline const float kStompBounceSpeed = 0.6f;
 
 	//キャラクターの当たり判定サイズ
 	static inline const float kWidth = 0.8f;

@@ -470,4 +470,9 @@ void Player::OnCollision(const Enemy* enemy) {
 	isDead_ = true;
 }
 
+void Player::BounceFromEnemy() {
+	velocity_.y = kStompBounceSpeed;
+	onGround_ = false;
+}
+
 void Player::Draw() { model_->Draw(worldTransform_, *camera_); }

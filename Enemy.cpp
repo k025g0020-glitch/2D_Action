@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <numbers>
 
 #include "Enemy.h"
@@ -10,93 +11,136 @@
 
 using namespace KamataEngine;
 
-void Enemy::Initialize(Model* model, Camera* camera, MapChipField* mapChipField, const Vector3& position) {
+void Enemy::Initialize(Model* model, Camera* camera, MapChipField* mapChipField, const Vector3& position, Type type) {
 	assert(model);
 	assert(mapChipField);
 
 	model_ = model;
 	camera_ = camera;
+	mapChipField_ = mapChipField;
+	type_ = type;
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
-	mapChipField_ = mapChipField;
 
 	worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
 	lrDirection_ = LRDirection::kRight;
 
 	turnFirstRotationY_ = worldTransform_.rotation_.y;
 	turnTimer_ = 0.0f;
+	walkTimer_ = 0.0f;
 
 	onGround_ = true;
 
-	walkTimer_ = 0.0f;
+	state_ = State::kAlive;
+	squashTimer_ = 0.0f;
+
+	flyingCenterPosition_ = position;
+	flyingTimer_ = 0.0f;
+
+	velocity_ = {};
+
+	UpdateWorldTransform();
 }
 
 void Enemy::Update() {
-	// 自動移動の処理
+	if (state_ == State::kGone) {
+		return;
+	}
+
+	// 踏まれた後のつぶれアニメーション
+	if (state_ == State::kSquashed) {
+		squashTimer_ += 1.0f / 60.0f;
+
+		const float ratio = std::clamp(squashTimer_ / kSquashDuration, 0.0f, 1.0f);
+
+		worldTransform_.scale_.y = std::lerp(1.0f, kSquashedScaleY, ratio);
+
+		// 足元を動かさず、上から押しつぶす
+		worldTransform_.translation_.y = squashStartY_ - kHeight * (1.0f - worldTransform_.scale_.y) * 0.5f;
+
+		UpdateWorldTransform();
+
+		if (squashTimer_ >= kSquashDuration + kSquashWaitTime) {
+			state_ = State::kGone;
+		}
+
+		return;
+	}
+
+	// 飛行敵はマップ衝突や重力を使用しない
+	if (type_ == Type::kFlying) {
+		UpdateFlying();
+		return;
+	}
+
+	// 無敵敵は初期位置に固定
+	if (type_ == Type::kInvincible) {
+		velocity_ = {};
+		UpdateWorldTransform();
+		return;
+	}
+
+	// ここから通常の地上敵
 	Move();
 
-	// 衝突情報を初期化
 	CollisionMapInfo collisionMapInfo;
 	collisionMapInfo.move = velocity_;
 
-	// マップとの衝突判定
 	MapCollision(collisionMapInfo);
 
-	// 旋回制御
+	// 旋回アニメーション
 	if (turnTimer_ > 0.0f) {
 		turnTimer_ -= 1.0f / 60.0f;
+
 		if (turnTimer_ < 0.0f) {
 			turnTimer_ = 0.0f;
 		}
 
-		float destinationRotationYTable[] = {std::numbers::pi_v<float> / 2.0f, std::numbers::pi_v<float> * 3.0f / 2.0f};
-		float destinationRotationY = destinationRotationYTable[static_cast<uint32_t>(lrDirection_)];
+		const float destinationRotationYTable[] = {
+		    std::numbers::pi_v<float> / 2.0f,
+		    std::numbers::pi_v<float> * 3.0f / 2.0f,
+		};
 
-		float ratio = 1.0f - (turnTimer_ / kTimeTurn);
-		worldTransform_.rotation_.y = std::lerp(turnFirstRotationY_, destinationRotationY, ratio);
+		const float destinationRotationY = destinationRotationYTable[static_cast<uint32_t>(lrDirection_)];
+
+		const float turnRatio = 1.0f - turnTimer_ / kTimeTurn;
+
+		worldTransform_.rotation_.y = std::lerp(turnFirstRotationY_, destinationRotationY, turnRatio);
 	}
 
-	// 衝突応答
 	OnCeilingCollision(collisionMapInfo);
 	OnWallCollision(collisionMapInfo);
 
-	// 壁にヒットした場合は進行方向を反転させる自動巡回AI
+	// 壁に当たったら進行方向を反転
 	if (collisionMapInfo.hitWall) {
 		if (lrDirection_ == LRDirection::kRight) {
 			lrDirection_ = LRDirection::kLeft;
 		} else {
 			lrDirection_ = LRDirection::kRight;
 		}
+
 		turnFirstRotationY_ = worldTransform_.rotation_.y;
+
 		turnTimer_ = kTimeTurn;
-		velocity_.x = 0.0f; // 反転時に一度速度をリセット
+		velocity_.x = 0.0f;
 	}
 
-	// 判定結果を反映して移動
 	ApplyMove(collisionMapInfo);
-
-	// 接地状態切り替え
 	OnGroundToggle(collisionMapInfo);
 
+	// 歩行アニメーション
 	walkTimer_ += 1.0f / 60.0f;
 
-	// 1. サイン波の周期を計算（2*π をかけて1秒で1周期にするなど調整）
-	float sinParam = std::sin(2.0f * std::numbers::pi_v<float> * walkTimer_);
+	const float sinParam = std::sin(2.0f * std::numbers::pi_v<float> * walkTimer_);
 
-	// 2. 算出した数値を -1.0f ~ +1.0f から 0.0f ~ 1.0f の係数 t (ratio) に加工する
-	float ratio = (sinParam + 1.0f) / 2.0f;
+	const float walkRatio = (sinParam + 1.0f) / 2.0f;
 
-	// 3. 最初の角度と最後の角度を使って線形補間（degree）
-	// ※Enemy.hで定義されている -30度 から +30度 の範囲で往復させたい場合は、初期値をマイナスにします
-	float degree = -kWalkMotionAngleStart + (kWalkMotionAngleStart + kWalkMotionAngleEnd) * ratio;
+	const float degree = -kWalkMotionAngleStart + (kWalkMotionAngleStart + kWalkMotionAngleEnd) * walkRatio;
 
-	// 4. 度（degree）をラジアンに変換して X軸周りの角度に代入
 	worldTransform_.rotation_.x = degree * (std::numbers::pi_v<float> / 180.0f);
 
-	// 行列更新
-	worldTransform_.matWorld_ = calc::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
-	worldTransform_.TransferMatrix();
+	UpdateWorldTransform();
 }
 
 void Enemy::Move() {
@@ -118,6 +162,49 @@ void Enemy::Move() {
 		velocity_.y -= kGravityAcceleration;
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
 	}
+}
+
+void Enemy::UpdateFlying() {
+	constexpr float kDeltaTime = 1.0f / 60.0f;
+
+	// 前フレームのY座標
+	const float previousY = worldTransform_.translation_.y;
+
+	flyingTimer_ += kDeltaTime;
+
+	// ゴール側からスタート側へ移動
+	worldTransform_.translation_.x -= kFlyingMoveSpeed * kDeltaTime;
+
+	// スタート側まで到達したらゴール側へ戻す
+	if (worldTransform_.translation_.x <= kFlyingLeftLimit) {
+
+		worldTransform_.translation_.x = flyingCenterPosition_.x;
+
+		flyingTimer_ = 0.0f;
+	}
+
+	const float angle = 2.0f * std::numbers::pi_v<float> * kFlyingFrequency * flyingTimer_;
+
+	// sinを使って上下に浮き沈みさせる
+	worldTransform_.translation_.y = flyingCenterPosition_.y + std::sin(angle) * kFlyingHeight;
+
+	// 上下運動に合わせて少し傾ける
+	worldTransform_.rotation_.z = std::sin(angle) * 0.15f;
+
+	// 1フレームの移動量を速度へ設定
+	velocity_.x = -kFlyingMoveSpeed * kDeltaTime;
+
+	velocity_.y = worldTransform_.translation_.y - previousY;
+
+	velocity_.z = 0.0f;
+
+	UpdateWorldTransform();
+}
+
+void Enemy::UpdateWorldTransform() {
+	worldTransform_.matWorld_ = calc::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+
+	worldTransform_.TransferMatrix();
 }
 
 Vector3 Enemy::CornerPosition(const Vector3& center, Corner corner) {
@@ -399,6 +486,28 @@ void Enemy::OnCollision(const Player* player) {
 	(void)player;
 }
 
-void Enemy::Draw() { 
-model_->Draw(worldTransform_, *camera_); 
+bool Enemy::IsDefeated() const { return state_ != State::kAlive; }
+
+bool Enemy::CanBeDefeated() const { return type_ != Type::kInvincible; }
+
+void Enemy::Defeat() {
+	if (state_ != State::kAlive) {
+		return;
+	}
+
+	// 無敵敵には攻撃が効かない
+	if (!CanBeDefeated()) {
+		return;
+	}
+
+	state_ = State::kSquashed;
+	squashTimer_ = 0.0f;
+	squashStartY_ = worldTransform_.translation_.y;
+	velocity_ = {};
+}
+
+void Enemy::Draw() {
+	if (state_ != State::kGone) {
+		model_->Draw(worldTransform_, *camera_);
+	}
 }

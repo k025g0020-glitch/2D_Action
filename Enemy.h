@@ -9,7 +9,13 @@ class Player;
 
 class Enemy {
 public:
-	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, MapChipField* mapChipField, const KamataEngine::Vector3& position);
+	enum class Type {
+		kGround,     // 通常の地上敵
+		kFlying,     // 空を飛ぶ敵
+		kInvincible, // 倒せない固定敵
+	};
+
+	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, MapChipField* mapChipField, const KamataEngine::Vector3& position, Type type = Type::kGround);
 	void Update();
 	void Draw();
 
@@ -24,8 +30,34 @@ public:
 	AABB GetAABB();
 
 	void OnCollision(const Player* player);
+	void Defeat();
+	bool IsDefeated() const;
+	bool CanBeDefeated() const;
+
 
 private:
+	void UpdateFlying();
+	void UpdateWorldTransform();
+
+	Type type_ = Type::kGround;
+
+	// 飛行敵の基準座標
+	KamataEngine::Vector3 flyingCenterPosition_ = {};
+
+	float flyingTimer_ = 0.0f;
+
+	// 1秒間に進む距離
+	static inline const float kFlyingMoveSpeed = 1.5f;
+
+	// 上下の振れ幅
+	static inline const float kFlyingHeight = 0.75f;
+
+	// 1秒あたりの上下運動回数
+	static inline const float kFlyingFrequency = 0.5f;
+
+	// スタート側の折り返し位置
+	static inline const float kFlyingLeftLimit = 2.0f;
+
 	enum Corner {
 		kRightBottom, // 右下
 		kLeftBottom,  // 左下
@@ -64,6 +96,21 @@ private:
 		kLeft,
 	};
 
+	enum class State {
+		kAlive,
+		kSquashed,
+		kGone,
+	};
+
+	State state_ = State::kAlive;
+
+	float squashTimer_ = 0.0f;
+	float squashStartY_ = 0.0f;
+
+	static inline const float kSquashDuration = 0.12f;
+	static inline const float kSquashWaitTime = 0.35f;
+	static inline const float kSquashedScaleY = 0.4f;
+
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Model* model_ = nullptr;
 	KamataEngine::Camera* camera_ = nullptr;
@@ -81,7 +128,7 @@ private:
 	// エネミー用の移動パラメータ（必要に応じて数値を調整してください）
 	static inline const float kAcceleration = 0.05f;
 	static inline const float kAttenuation = 0.1f;
-	static inline const float kLimitRunSpeed = 0.15f; // プレイヤーより少し遅め
+	static inline const float kLimitRunSpeed = 0.10f; // プレイヤーより少し遅め
 
 	// 接地状態フラグ
 	bool onGround_ = true;

@@ -29,13 +29,17 @@ private:
 
 	KamataEngine::Vector3 targetOffset_ = {0.0f, 0.0f, -15.0f};
 
-	Rect movableArea_ = {0.0f, 100.0f, 0.0f, 100.0f};
+	Rect movableArea_ = {50.0f, 100.0f, 0.0f, 100.0f};
 
 	KamataEngine::Vector3 targetPosition_;
+	float lookAheadOffsetX_ = 0.0f;
+	float facingDirection_ = 1.0f;
 
 	static inline const float kInterpolationRate = 0.1f;
-
-	static inline const float kVelocityBias = 10.0f;
-
-	static inline const Rect kMargin = {-3.0f, 3.0f, -2.0f, 2.0f};
+	static inline const float kLookAheadInterpolationRate = 0.08f;
+	static inline const float kLookAheadDistance = 3.0f;
+	static inline const float kVelocityBias = 6.0f;
+	static inline const float kDirectionThreshold = 0.01f;
+	static inline const float kFixedCameraY = 6.0f;
+	static inline const Rect kMargin = {-6.0f, 6.0f, -2.0f, 2.0f};
 };

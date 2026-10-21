@@ -1,10 +1,12 @@
 #include "GameScene.h"
+#include <cmath>
 
 using namespace KamataEngine;
 
 void GameScene::Initialize() {
 	model_ = Model::CreateFromOBJ("player", true);
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
+	modelInvincibleEnemy_ = Model::CreateFromOBJ("shieldEnemy", true);
 	modelBlock_ = Model::CreateFromOBJ("block", true);
 	modelSkydome_ = Model::CreateFromOBJ("skydome", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
@@ -24,19 +26,69 @@ void GameScene::Initialize() {
 	player_->Initialize(model_, &camera_, mapChipField_, playerInitialPosition);
 	player_->SetMapChipField(mapChipField_);
 
-	for (int32_t i = 0; i < 3; ++i) {
-		Enemy* newEnemy = new Enemy();
-		Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(10 + i * 2, 18);
-		newEnemy->Initialize(modelEnemy_, &camera_, mapChipField_, enemyPosition);
-		enemies_.push_back(newEnemy);
+	// 通常の地上敵
+	const uint32_t enemyColumns[] = {12, 26, 40};
+
+	for (uint32_t enemyColumn : enemyColumns) {
+		Enemy* enemy = new Enemy();
+
+		const Vector3 position = mapChipField_->GetMapChipPositionByIndex(enemyColumn, 18);
+
+		enemy->Initialize(modelEnemy_, &camera_, mapChipField_, position, Enemy::Type::kGround);
+
+		enemies_.push_back(enemy);
 	}
+
+	// ゴール側からスタート側へ飛ぶ敵
+	{
+		Enemy* flyingEnemy = new Enemy();
+
+		// X=46付近のゴール側、高さY=9付近
+		const Vector3 position = mapChipField_->GetMapChipPositionByIndex(46, 10);
+
+		flyingEnemy->Initialize(modelEnemy_, &camera_, mapChipField_, position, Enemy::Type::kFlying);
+
+		enemies_.push_back(flyingEnemy);
+	}
+
+	// 動かない無敵敵
+	{
+		Enemy* invincibleEnemy = new Enemy();
+
+		const Vector3 position = mapChipField_->GetMapChipPositionByIndex(34, 18);
+
+		invincibleEnemy->Initialize(modelInvincibleEnemy_, &camera_, mapChipField_, position, Enemy::Type::kInvincible);
+
+		enemies_.push_back(invincibleEnemy);
+	}
+
+	// ステージ右端のゴールポールと旗
+	goalPole_.Initialize();
+	goalPole_.translation_ = {47.0f, 3.0f, 0.0f};
+	goalPole_.scale_ = {0.15f, 3.0f, 0.15f};
+	goalFlag_.Initialize();
+	goalFlag_.translation_ = {46.45f, 5.25f, 0.0f};
+	goalFlag_.scale_ = {0.7f, 0.45f, 0.15f};
 
 	deathParticles_ = nullptr;
 
 	cameraController_ = new CameraController();
 	cameraController_->Initialize(&camera_);
 	cameraController_->SetTarget(player_);
-	Rect area = {0.0f, 100.0f, 0.0f, 100.0f};
+	// カメラ中心ではなく画面端がステージ境界を越えない範囲に制限する
+	constexpr float kCameraDistance = 15.0f;
+	constexpr float kStageLeft = -0.5f;
+	constexpr float kStageRight = 49.5f;
+	constexpr float kStageBottom = -0.5f;
+	constexpr float kStageTop = 19.5f;
+	const float cameraHalfHeight = std::tan(camera_.fovAngleY * 0.5f) * kCameraDistance;
+	const float cameraHalfWidth = cameraHalfHeight * camera_.aspectRatio;
+	Rect area = {
+	    kStageLeft + cameraHalfWidth,
+	    kStageRight - cameraHalfWidth,
+	    kStageBottom + cameraHalfHeight,
+	    kStageTop - cameraHalfHeight,
+	};
 	cameraController_->SetMovableArea(area);
 	cameraController_->Reset();
 
@@ -55,6 +107,10 @@ void GameScene::Initialize() {
 
 	// カメラの初期状態を行列に反映
 	cameraController_->Update();
+	goalPole_.matWorld_ = calc::MakeAffineMatrix(goalPole_.scale_, goalPole_.rotation_, goalPole_.translation_);
+	goalPole_.TransferMatrix();
+	goalFlag_.matWorld_ = calc::MakeAffineMatrix(goalFlag_.scale_, goalFlag_.rotation_, goalFlag_.translation_);
+	goalFlag_.TransferMatrix();
 
 	fade_ = new Fade();
 	fade_->Initialize();
@@ -192,6 +248,12 @@ void GameScene::UpdatePlayPhase() {
 
 	// 全ての当たり判定
 	CheckAllCollisions();
+
+	if (!player_->IsDead() && IsGoalReached()) {
+		isCleared_ = true;
+		phase_ = Phase::kFadeOut;
+		fade_->Start(Fade::Status::FadeOut, kFadeDuration);
+	}
 }
 
 // デス演出フェーズの処理
@@ -241,7 +303,7 @@ void GameScene::Draw() {
 	Model::PreDraw();
 	skydome_->Draw(camera_);
 
-	if (phase_ == Phase::kPlay || phase_ == Phase::kFadeIn) {
+	if (phase_ == Phase::kPlay || phase_ == Phase::kFadeIn || (phase_ == Phase::kFadeOut && isCleared_)) {
 		player_->Draw();
 	}
 
@@ -260,6 +322,8 @@ void GameScene::Draw() {
 			modelBlock_->Draw(*worldTransformBlock, camera_);
 		}
 	}
+	//modelBlock_->Draw(goalPole_, camera_);
+	//modelBlock_->Draw(goalFlag_, camera_);
 	Model::PostDraw();
 
 	if (fade_) {
@@ -299,30 +363,35 @@ void GameScene::GenerateBlocks() {
 }
 
 void GameScene::CheckAllCollisions() {
-#pragma region
-	{
-		// 判定対象1と2の座標
-		AABB aabb1, aabb2;
+	AABB playerAABB = player_->GetAABB();
 
-		// 自キャラのAABB座標を取得
-		aabb1 = player_->GetAABB();
+	for (Enemy* enemy : enemies_) {
+		if (enemy->IsDefeated()) {
+			continue;
+		}
 
-		// 全ての敵キャラとの当たり判定
-		for (Enemy* enemy : enemies_) {
-			// 敵キャラのAABB座標を取得
-			aabb2 = enemy->GetAABB();
+		const AABB enemyAABB = enemy->GetAABB();
 
-			// AABB同士の交差判定（先ほど定義したIsCollisionを使用）
-			if (calc::IsCollision(aabb1, aabb2)) {
-				// 衝突応答
-				// 自キャラの衝突時コールバックを呼び出す
-				player_->OnCollision(enemy);
-				// 敵キャラの衝突時コールバックを呼び出す
-				enemy->OnCollision(player_);
-			}
+		if (!calc::IsCollision(playerAABB, enemyAABB)) {
+			continue;
+		}
+
+		const float playerCenterY = (playerAABB.min.y + playerAABB.max.y) * 0.5f;
+
+		const float enemyCenterY = (enemyAABB.min.y + enemyAABB.max.y) * 0.5f;
+
+		const bool stompedFromAbove = player_->GetVelocity().y < 0.0f && playerCenterY > enemyCenterY + 0.2f;
+
+		if (stompedFromAbove && enemy->CanBeDefeated()) {
+
+			enemy->Defeat();
+			player_->BounceFromEnemy();
+
+		} else {
+			// 横からの接触、または無敵敵への攻撃
+			player_->OnCollision(enemy);
 		}
 	}
-#pragma endregion
 }
 
 GameScene::~GameScene() {
@@ -339,15 +408,27 @@ GameScene::~GameScene() {
 	if (deathParticles_) {
 		delete deathParticles_;
 	}
+
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 			delete worldTransformBlock;
 		}
 	}
+
 	worldTransformBlocks_.clear();
 	delete debugCamera_;
 
 	if (fade_) {
 		delete fade_;
 	}
+
+	delete modelEnemy_;
+	delete modelInvincibleEnemy_;
+	delete modelDeathParticle_;
+}
+
+bool GameScene::IsGoalReached() {
+	const Vector3 playerPosition = player_->GetWorldPosition();
+
+	return playerPosition.x >= goalPole_.translation_.x - 0.6f;
 }
