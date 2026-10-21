@@ -94,6 +94,7 @@ void ChangeScene() {
 				// ミスしたら残機を減らす
 				--gameSession.lives;
 				if (gameSession.lives > 0) {
+					gameSession.isRespawn = true;
 					StartStageIntro();
 				} else {
 					StartResult(ResultScene::Type::kGameOver);
@@ -113,6 +114,7 @@ void ChangeScene() {
 			} else {
 				++gameSession.stageIndex;
 				gameSession.checkpointReached = false;
+				gameSession.isRespawn = false;
 				StartStageIntro();
 			}
 		}

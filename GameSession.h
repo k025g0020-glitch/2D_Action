@@ -34,6 +34,8 @@ struct GameSession {
 	uint32_t stageIndex = 0;
 	// 現在のステージで中間ポイントを通過したか
 	bool checkpointReached = false;
+	// ミスした後の再挑戦か（復活直後は少しの間無敵にする）
+	bool isRespawn = false;
 
 	StageResult lastStageResult;
 

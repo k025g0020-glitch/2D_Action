@@ -68,6 +68,8 @@ private:
 	KamataEngine::Vector2 WorldToScreen(const KamataEngine::Vector3& position) const;
 
 	static inline const float kFadeDuration = 1.0f;
+	// 復活直後の無敵時間（フェードイン中も減るので、操作できるのは約2秒）
+	static inline const float kRespawnInvincibleTime = 3.0f;
 	// これより下に落ちたらミス
 	static inline const float kFallDeathY = -1.0f;
 	// 残り時間がこれ以下になったら時間表示を赤くする

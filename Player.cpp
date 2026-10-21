@@ -31,6 +31,10 @@ void Player::Initialize(Model* model, Camera* camera, MapChipField* mapChipField
 }
 
 void Player::Update() {
+	// 無敵時間を減らす
+	if (invincibleTimer_ > 0.0f) {
+		invincibleTimer_ = std::max(invincibleTimer_ - 1.0f / 60.0f, 0.0f);
+	}
 
 	Move();
 
@@ -87,12 +91,13 @@ void Player::Move() {
 
 	// 左右移動（空中でも少しだけ向きを変えられる）
 	const float accelerationX = onGround_ ? kAcceleration : kAirAcceleration;
+	hasMoveInput_ = pushRight || pushLeft;
 	Vector3 acceleration = {};
 	if (pushRight) {
 		// 左移動中の右入力
 		if (onGround_ && velocity_.x < 0.0f) {
 			// 速度と逆方向に入力中は急ブレーキ
-			velocity_.x *= (1.0f - kAttenuation);
+			velocity_.x *= (1.0f - kTurnBrakeRate);
 		}
 		acceleration.x += accelerationX;
 
@@ -108,7 +113,7 @@ void Player::Move() {
 		// 右移動中の左入力
 		if (onGround_ && velocity_.x > 0.0f) {
 			// 速度と逆方向に入力中は急ブレーキ
-			velocity_.x *= (1.0f - kAttenuation);
+			velocity_.x *= (1.0f - kTurnBrakeRate);
 		}
 		acceleration.x -= accelerationX;
 
@@ -136,8 +141,8 @@ void Player::Move() {
 	} else {
 		coyoteTimer_ = std::max(coyoteTimer_ - kDeltaTime, 0.0f);
 
-		// 空中（落下速度の加算）
-		velocity_.y -= kGravityAcceleration;
+		// 空中（落下速度の加算）。上昇中は重力を弱くする
+		velocity_.y -= (velocity_.y > 0.0f) ? kGravityRise : kGravityAcceleration;
 		// 落下速度制限（下方向への速度を一定値に丸める）
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
 
@@ -442,8 +447,10 @@ void Player::OnGroundToggle(const CollisionMapInfo& info) {
 		if (info.landing) {
 			// 接地状態に切り替える（落下を止める）
 			onGround_ = true;
-			// 着地時にX速度を減衰
-			velocity_.x *= (1.0f - kAttenuationLanding);
+			// 着地時にX速度を減衰（左右を押し続けている時は勢いを保つ）
+			if (!hasMoveInput_) {
+				velocity_.x *= (1.0f - kAttenuationLanding);
+			}
 			// Y速度をゼロにする
 			velocity_.y = 0.0f;
 		}
@@ -501,6 +508,11 @@ AABB Player::GetAABB() {
 void Player::OnCollision(const Enemy* enemy) {
 	(void)enemy;
 
+	// 無敵中は敵に触れてもミスにならない
+	if (IsInvincible()) {
+		return;
+	}
+
 	// デスフラグを立てる
 	isDead_ = true;
 }
@@ -515,4 +527,10 @@ void Player::BounceFromEnemy() {
 	onGround_ = false;
 }
 
-void Player::Draw() { model_->Draw(worldTransform_, *camera_); }
+void Player::Draw() {
+	// 無敵中は点滅させる
+	if (IsInvincible() && static_cast<int>(invincibleTimer_ * kBlinkRate) % 2 == 0) {
+		return;
+	}
+	model_->Draw(worldTransform_, *camera_);
+}

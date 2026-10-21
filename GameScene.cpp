@@ -167,6 +167,11 @@ void GameScene::SpawnObjectsFromMap() {
 	player_ = new Player();
 	player_->Initialize(model_, &camera_, mapChipField_, playerInitialPosition);
 	player_->SetMapChipField(mapChipField_);
+
+	// ミスした後の復活では、近くの敵にすぐ当たらないように少しの間無敵にする
+	if (session_->isRespawn) {
+		player_->StartInvincible(kRespawnInvincibleTime);
+	}
 }
 
 void GameScene::Update() {

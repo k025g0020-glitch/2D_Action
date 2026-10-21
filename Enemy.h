@@ -58,7 +58,7 @@ private:
 	static inline const float kFlyingMoveSpeed = 1.5f;
 
 	// 上下の振れ幅
-	static inline const float kFlyingHeight = 0.75f;
+	static inline const float kFlyingHeight = 1.5f;
 
 	// 1秒あたりの上下運動回数
 	static inline const float kFlyingFrequency = 0.5f;
