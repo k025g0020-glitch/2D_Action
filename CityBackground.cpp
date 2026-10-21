@@ -8,6 +8,7 @@ using namespace KamataEngine;
 CityBackground::~CityBackground() {
 	buildings_.clear();
 	delete skyModel_;
+	delete fogModel_;
 	for (Model* model : buildingModels_) {
 		delete model;
 	}
@@ -25,12 +26,23 @@ void CityBackground::Initialize(Camera* camera, float stageWidth, uint32_t seed)
 		buildingModels_[i] = Model::CreateFromOBJ(kBuildingModels[i].name, true);
 	}
 
+	// 霧の板（画面全体を覆う大きさ）
+	fogModel_ = Model::CreateFromOBJ("fog", true);
+	for (size_t i = 0; i < kLayers.size(); ++i) {
+		FogPlane& fog = fogPlanes_[i];
+		fog.worldTransform.Initialize();
+		fog.worldTransform.scale_ = {kSkyWidth, kSkyHeight, 1.0f};
+		fog.objectColor.Initialize();
+		fog.objectColor.SetColor({kFogColor.x, kFogColor.y, kFogColor.z, kLayers[i].fogAlpha});
+	}
+
 	// 同じステージなら毎回同じ街並みになるように、種を固定した乱数を使う
 	std::mt19937 engine(seed);
 	auto random = [&engine](float min, float max) { return std::uniform_real_distribution<float>(min, max)(engine); };
 	std::uniform_int_distribution<size_t> pickModel(0, kBuildingModels.size() - 1);
 
-	for (const LayerInfo& layer : kLayers) {
+	for (size_t layerIndex = 0; layerIndex < kLayers.size(); ++layerIndex) {
+		const LayerInfo& layer = kLayers[layerIndex];
 		// カメラが x = halfWidth〜(stageWidth - halfWidth) を動く間に見える範囲だけ並べる
 		// ビルの画面上の位置 = base + camera * rate なので、base は camera * (1 - rate) を中心に見えればよい
 		const float minCameraX = kViewHalfWidth;
@@ -48,6 +60,7 @@ void CityBackground::Initialize(Camera* camera, float stageWidth, uint32_t seed)
 			auto building = std::make_unique<Building>();
 			building->model = buildingModels_[modelIndex];
 			building->followRate = layer.followRate;
+			building->layerIndex = layerIndex;
 			building->basePosition = {x + width * 0.5f, kBuildingBaseY, layer.z};
 			building->worldTransform.Initialize();
 			building->worldTransform.scale_ = {scale, scale, 1.0f};
@@ -79,6 +92,12 @@ void CityBackground::Update() {
 	skyTransform_.translation_ = {cameraPosition.x, cameraPosition.y - kSkyHeight * 0.5f, kSkyZ};
 	UpdateTransform(skyTransform_);
 
+	// 霧も画面に対して動かない
+	for (size_t i = 0; i < kLayers.size(); ++i) {
+		fogPlanes_[i].worldTransform.translation_ = {cameraPosition.x, cameraPosition.y - kSkyHeight * 0.5f, kLayers[i].z - kFogOffsetZ};
+		UpdateTransform(fogPlanes_[i].worldTransform);
+	}
+
 	for (const std::unique_ptr<Building>& building : buildings_) {
 		WorldTransform& worldTransform = building->worldTransform;
 		worldTransform.translation_ = {
@@ -92,7 +111,14 @@ void CityBackground::Update() {
 
 void CityBackground::Draw() {
 	skyModel_->Draw(skyTransform_, *camera_);
-	for (const std::unique_ptr<Building>& building : buildings_) {
-		building->model->Draw(building->worldTransform, *camera_, &building->objectColor);
+
+	// 半透明の霧の奥にあるものが消えないよう、遠い層から「ビル → 霧」の順に描く
+	for (size_t i = 0; i < kLayers.size(); ++i) {
+		for (const std::unique_ptr<Building>& building : buildings_) {
+			if (building->layerIndex == i) {
+				building->model->Draw(building->worldTransform, *camera_, &building->objectColor);
+			}
+		}
+		fogModel_->Draw(fogPlanes_[i].worldTransform, *camera_, &fogPlanes_[i].objectColor);
 	}
 }

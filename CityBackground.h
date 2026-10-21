@@ -6,6 +6,7 @@
 
 // 背景：夕暮れの空と、奥行きのある3層のビル群
 // ビルはステージごとに生成し、カメラの動きに対して遠い層ほどゆっくり動く（視差）
+// 層と層の間に半透明の霧をはさみ、遠いほどかすんで見えるようにする（手前のキャラクターを目立たせるため）
 class CityBackground {
 public:
 	~CityBackground();
@@ -31,6 +32,13 @@ private:
 		KamataEngine::Vector4 tint;  // 色合い（遠いほど空の色に近く薄く）
 		float minScale, maxScale;    // ビルの大きさ
 		float minGap, maxGap;        // ビルどうしの間隔（マイナスで重なる）
+		float fogAlpha;              // この層の手前にかける霧の濃さ
+	};
+
+	// 層の手前にかける霧の板
+	struct FogPlane {
+		KamataEngine::WorldTransform worldTransform;
+		KamataEngine::ObjectColor objectColor;
 	};
 
 	struct Building {
@@ -40,6 +48,8 @@ private:
 		// カメラが原点にある時の位置
 		KamataEngine::Vector3 basePosition = {};
 		float followRate = 0.0f;
+		// どの層のビルか（描く順番に使う）
+		size_t layerIndex = 0;
 	};
 
 	static inline const std::array<BuildingModel, 5> kBuildingModels = {{
@@ -52,10 +62,15 @@ private:
 
 	// 遠い層から順に描く
 	static inline const std::array<LayerInfo, 3> kLayers = {{
-	    {0.85f, 60.0f, {0.42f, 0.44f, 0.72f, 1.0f}, 0.75f, 1.15f, 0.0f, 2.0f},
-	    {0.65f, 40.0f, {0.42f, 0.38f, 0.58f, 1.0f}, 0.55f, 0.85f, 1.0f, 3.5f},
-	    {0.4f, 20.0f, {0.24f, 0.23f, 0.33f, 1.0f}, 0.35f, 0.55f, 2.0f, 5.0f},
+	    {0.85f, 60.0f, {0.42f, 0.44f, 0.72f, 1.0f}, 0.75f, 1.15f, 0.0f, 2.0f, 0.35f},
+	    {0.65f, 40.0f, {0.42f, 0.38f, 0.58f, 1.0f}, 0.55f, 0.85f, 1.0f, 3.5f, 0.3f},
+	    {0.4f, 20.0f, {0.24f, 0.23f, 0.33f, 1.0f}, 0.35f, 0.55f, 2.0f, 5.0f, 0.3f},
 	}};
+
+	// 霧の色（夕暮れの空になじむ薄紫）
+	static inline const KamataEngine::Vector3 kFogColor = {0.62f, 0.56f, 0.74f};
+	// 霧の板を、その層のビルからどれだけ手前に置くか
+	static inline const float kFogOffsetZ = 10.0f;
 
 	// 空の板（画面より少し大きく）
 	static inline const float kSkyWidth = 30.0f;
@@ -74,6 +89,9 @@ private:
 
 	KamataEngine::Model* skyModel_ = nullptr;
 	KamataEngine::WorldTransform skyTransform_;
+
+	KamataEngine::Model* fogModel_ = nullptr;
+	std::array<FogPlane, kLayers.size()> fogPlanes_;
 
 	std::array<KamataEngine::Model*, kBuildingModels.size()> buildingModels_ = {};
 	// WorldTransform はコピーできないので、ポインタで持つ
