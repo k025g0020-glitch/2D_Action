@@ -38,7 +38,9 @@ void StageIntroScene::Draw() {
 	text_.Clear();
 
 	std::snprintf(buffer, sizeof(buffer), "STAGE %u", session_->stageIndex + 1);
-	text_.Print(buffer, 640.0f, 260.0f, 64.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+	text_.Print(buffer, 640.0f, 220.0f, 64.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+	// 街の名前
+	text_.Print(session_->GetStage().name, 640.0f, 300.0f, 32.0f, {1.0f, 0.75f, 0.45f, 1.0f}, BitmapText::Align::kCenter);
 
 	std::snprintf(buffer, sizeof(buffer), "LIFE * %d", session_->lives);
 	text_.Print(buffer, 640.0f, 380.0f, 40.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);

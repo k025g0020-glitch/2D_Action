@@ -20,11 +20,13 @@ void CameraController::Reset() {
 	ApplyOrthographicProjection();
 }
 
-void CameraController::ApplyOrthographicProjection() {
-	const float halfHeight = GetViewHalfHeight();
-	const float halfWidth = GetViewHalfWidth();
-	camera_->matProjection = calc::MakeOrthographicMatrix(-halfWidth, halfHeight, halfWidth, -halfHeight, kNearClip, kFarClip);
-	camera_->TransferMatrix();
+void CameraController::ApplyOrthographicProjection() { ApplyOrthographic(camera_); }
+
+void CameraController::ApplyOrthographic(Camera* camera) {
+	const float halfHeight = kViewHalfHeight;
+	const float halfWidth = kViewHalfHeight * camera->aspectRatio;
+	camera->matProjection = calc::MakeOrthographicMatrix(-halfWidth, halfHeight, halfWidth, -halfHeight, kNearClip, kFarClip);
+	camera->TransferMatrix();
 }
 
 void CameraController::Update() {

@@ -16,7 +16,6 @@ void GameScene::Initialize(GameSession* session) {
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 	modelInvincibleEnemy_ = Model::CreateFromOBJ("shieldEnemy", true);
 	modelBlock_ = Model::CreateFromOBJ("block", true);
-	modelSkydome_ = Model::CreateFromOBJ("skydome", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
 	modelGoalStar_ = Model::CreateFromOBJ("star", true);
 	modelSmoke_ = Model::CreateFromOBJ("smoke", true);
@@ -27,11 +26,12 @@ void GameScene::Initialize(GameSession* session) {
 	particles_.Initialize(modelSmoke_, modelGoalStar_, &camera_);
 	debugCamera_ = new DebugCamera(1280, 720);
 
-	skydome_ = new Skydome();
-	skydome_->Initialize(modelSkydome_);
-
 	mapChipField_ = new MapChipField;
 	mapChipField_->LoadMapChipCsv(session_->GetStage().csvPath);
+
+	// 背景の街並み（ステージごとに違う並びにする）
+	cityBackground_ = new CityBackground();
+	cityBackground_->Initialize(&camera_, static_cast<float>(mapChipField_->GetStageWidth()), session_->stageIndex + 1);
 
 	// プレイヤー・敵・コイン・ゴールなどをマップから配置
 	SpawnObjectsFromMap();
@@ -293,9 +293,8 @@ void GameScene::EmitPlayerEffects() {
 }
 
 void GameScene::UpdateStageObjects() {
-	// 天球の更新（カメラに合わせて動かす）
-	skydome_->Follow(camera_.translation_);
-	skydome_->Update();
+	// 背景の更新（カメラに合わせて動かす）
+	cityBackground_->Update();
 
 	// 敵の更新 (複数)
 	for (Enemy* enemy : enemies_) {
@@ -434,7 +433,7 @@ void GameScene::UpdateDeathPhase() {
 
 void GameScene::Draw() {
 	Model::PreDraw();
-	skydome_->Draw(camera_);
+	cityBackground_->Draw();
 
 	if (phase_ == Phase::kPlay || phase_ == Phase::kFadeIn || (phase_ == Phase::kFadeOut && isCleared_)) {
 		player_->Draw();
@@ -648,8 +647,7 @@ GameScene::~GameScene() {
 	}
 	delete checkpoint_;
 	delete modelBlock_;
-	delete skydome_;
-	delete modelSkydome_;
+	delete cityBackground_;
 	delete mapChipField_;
 	delete cameraController_;
 	if (deathParticles_) {

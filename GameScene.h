@@ -1,6 +1,7 @@
 #pragma once
 #include "BitmapText.h"
 #include "CameraController.h"
+#include "CityBackground.h"
 #include "Checkpoint.h"
 #include "Coin.h"
 #include "DeathParticles.h"
@@ -12,7 +13,6 @@
 #include "MapChipField.h"
 #include "ParticleSystem.h"
 #include "Player.h"
-#include "Skydome.h"
 #include "calc.h"
 #include <list>
 #include <string>
@@ -103,7 +103,6 @@ private:
 
 	KamataEngine::Model* model_ = nullptr;
 	KamataEngine::Model* modelBlock_ = nullptr;
-	KamataEngine::Model* modelSkydome_ = nullptr;
 	KamataEngine::Model* modelEnemy_ = nullptr;
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
@@ -115,7 +114,8 @@ private:
 	KamataEngine::Camera camera_;
 
 	CameraController* cameraController_ = nullptr;
-	Skydome* skydome_ = nullptr;
+	// 背景の空とビル群
+	CityBackground* cityBackground_ = nullptr;
 	MapChipField* mapChipField_ = nullptr;
 	Player* player_ = nullptr;
 	std::list<Enemy*> enemies_;

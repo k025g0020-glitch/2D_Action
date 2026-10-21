@@ -23,6 +23,9 @@ public:
 	void SetTarget(Player* target) { target_ = target; }
 	void SetMovableArea(const Rect& area) { movableArea_ = area; }
 
+	// カメラの射影を平行投影にして転送する（ゲーム画面以外のシーンでも同じ見え方にするため）
+	static void ApplyOrthographic(KamataEngine::Camera* camera);
+
 	// 画面に映る範囲の半分の大きさ（ワールド座標）
 	float GetViewHalfHeight() const { return kViewHalfHeight; }
 	float GetViewHalfWidth() const { return kViewHalfHeight * camera_->aspectRatio; }

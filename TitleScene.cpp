@@ -1,4 +1,5 @@
 #include "TitleScene.h"
+#include "CameraController.h"
 #include <cmath>
 
 using namespace KamataEngine;
@@ -18,6 +19,11 @@ void TitleScene::Initialize() {
 	text_.Initialize(128);
 	blinkTimer_ = 0.0f;
 
+	// ゲーム画面と同じ高さ・距離から街並みを映す
+	camera_.Initialize();
+	camera_.translation_ = {kCameraStartX, 6.0f, -15.0f};
+	cityBackground_.Initialize(&camera_, kCityWidth, 2024);
+
 	// 初期フェーズ設定とフェードイン開始
 	phase_ = Phase::kFadeIn;
 	fade_->Start(Fade::Status::FadeIn, kFadeDuration);
@@ -30,6 +36,15 @@ void TitleScene::Update() {
 	}
 
 	blinkTimer_ += 1.0f / 60.0f;
+
+	// 背景をゆっくり横に流す（端まで来たら最初に戻す）
+	camera_.translation_.x += kScrollSpeed;
+	if (camera_.translation_.x > kCityWidth - kCameraStartX) {
+		camera_.translation_.x = kCameraStartX;
+	}
+	camera_.UpdateMatrix();
+	CameraController::ApplyOrthographic(&camera_);
+	cityBackground_.Update();
 
 	switch (phase_) {
 	case Phase::kFadeIn:
@@ -58,6 +73,10 @@ void TitleScene::Update() {
 }
 
 void TitleScene::Draw() {
+	Model::PreDraw();
+	cityBackground_.Draw();
+	Model::PostDraw();
+
 	text_.Clear();
 
 	// 「PRESS SPACE」を点滅させる

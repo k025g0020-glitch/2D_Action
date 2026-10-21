@@ -1,5 +1,6 @@
 #pragma once
 #include "BitmapText.h"
+#include "CityBackground.h"
 #include "Fade.h"
 #include "KamataEngine.h"
 
@@ -33,6 +34,14 @@ private:
 
 	// フェードオブジェクト
 	Fade* fade_ = nullptr;
+
+	// 背景の街並み（ゆっくり横に流れる）
+	KamataEngine::Camera camera_;
+	CityBackground cityBackground_;
+	// 背景を流す速さと、街並みの長さ
+	static inline const float kScrollSpeed = 0.03f;
+	static inline const float kCityWidth = 300.0f;
+	static inline const float kCameraStartX = 13.0f;
 
 	// 操作説明などの文字
 	BitmapText text_;
