@@ -17,6 +17,14 @@ void CameraController::Reset() {
 	camera_->translation_.y = std::clamp(kFixedCameraY + targetOffset_.y, movableArea_.bottom, movableArea_.top);
 	camera_->translation_.z = targetWorldTransform.translation_.z + targetOffset_.z;
 	camera_->UpdateMatrix();
+	ApplyOrthographicProjection();
+}
+
+void CameraController::ApplyOrthographicProjection() {
+	const float halfHeight = GetViewHalfHeight();
+	const float halfWidth = GetViewHalfWidth();
+	camera_->matProjection = calc::MakeOrthographicMatrix(-halfWidth, halfHeight, halfWidth, -halfHeight, kNearClip, kFarClip);
+	camera_->TransferMatrix();
 }
 
 void CameraController::Update() {
@@ -46,4 +54,5 @@ void CameraController::Update() {
 	camera_->translation_.y = std::clamp(camera_->translation_.y, movableArea_.bottom, movableArea_.top);
 
 	camera_->UpdateMatrix();
+	ApplyOrthographicProjection();
 }

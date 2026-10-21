@@ -51,6 +51,8 @@ public:
 	static Matrix4x4 MakeRotateYMatrix(float radian);
 	// Z軸回転行列
 	static Matrix4x4 MakeRotateZMatrix(float radian);
+	// 平行投影行列（遠近感のない2Dのような見た目になる）
+	static Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
 	// 3次元アフィン変換行列
 	static Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
 	// AABB同士の交差判定関数

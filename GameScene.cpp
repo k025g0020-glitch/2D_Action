@@ -41,13 +41,12 @@ void GameScene::Initialize(GameSession* session) {
 	cameraController_->Initialize(&camera_);
 	cameraController_->SetTarget(player_);
 	// カメラ中心ではなく画面端がステージ境界を越えない範囲に制限する
-	constexpr float kCameraDistance = 15.0f;
 	constexpr float kStageLeft = -0.5f;
 	const float kStageRight = static_cast<float>(mapChipField_->GetStageWidth()) - 0.5f;
 	constexpr float kStageBottom = -0.5f;
 	constexpr float kStageTop = 19.5f;
-	const float cameraHalfHeight = std::tan(camera_.fovAngleY * 0.5f) * kCameraDistance;
-	const float cameraHalfWidth = cameraHalfHeight * camera_.aspectRatio;
+	const float cameraHalfHeight = cameraController_->GetViewHalfHeight();
+	const float cameraHalfWidth = cameraController_->GetViewHalfWidth();
 	Rect area = {
 	    kStageLeft + cameraHalfWidth,
 	    kStageRight - cameraHalfWidth,
@@ -259,7 +258,8 @@ void GameScene::StartDeath() {
 }
 
 void GameScene::UpdateStageObjects() {
-	// 天球の更新
+	// 天球の更新（カメラに合わせて動かす）
+	skydome_->Follow(camera_.translation_);
 	skydome_->Update();
 
 	// 敵の更新 (複数)

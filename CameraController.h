@@ -23,6 +23,10 @@ public:
 	void SetTarget(Player* target) { target_ = target; }
 	void SetMovableArea(const Rect& area) { movableArea_ = area; }
 
+	// 画面に映る範囲の半分の大きさ（ワールド座標）
+	float GetViewHalfHeight() const { return kViewHalfHeight; }
+	float GetViewHalfWidth() const { return kViewHalfHeight * camera_->aspectRatio; }
+
 private:
 	KamataEngine::Camera* camera_ = nullptr;
 	Player* target_ = nullptr;
@@ -42,4 +46,13 @@ private:
 	static inline const float kDirectionThreshold = 0.01f;
 	static inline const float kFixedCameraY = 6.0f;
 	static inline const Rect kMargin = {-6.0f, 6.0f, -2.0f, 2.0f};
+
+	// 平行投影で縦に映す範囲の半分（13ブロック分を映す）
+	static inline const float kViewHalfHeight = 6.5f;
+	// 平行投影の描画範囲（カメラからの距離）
+	static inline const float kNearClip = 0.1f;
+	static inline const float kFarClip = 1000.0f;
+
+	// 透視投影を平行投影に置き換えて、奥行きで大きさが変わらない2Dの見た目にする
+	void ApplyOrthographicProjection();
 };
