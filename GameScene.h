@@ -51,6 +51,7 @@ private:
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
 	KamataEngine::Model* modelGoalStar_ = nullptr;
+	KamataEngine::Model* modelSmoke_ = nullptr;
 
 	KamataEngine::Camera camera_;
 

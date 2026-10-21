@@ -1,6 +1,7 @@
 #pragma once
 #include "KamataEngine.h"
 #include "CollisionMapInfo.h"
+#include "SmokeParticles.h"
 #include <cassert>
 
 class MapChipField;
@@ -15,7 +16,7 @@ public:
 		kInvincible, // 倒せない固定敵
 	};
 
-	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, MapChipField* mapChipField, const KamataEngine::Vector3& position, Type type = Type::kGround);
+	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, MapChipField* mapChipField, const KamataEngine::Vector3& position, Type type = Type::kGround, KamataEngine::Model* smokeModel = nullptr);
 	void Update();
 	void Draw();
 
@@ -108,8 +109,12 @@ private:
 	float squashStartY_ = 0.0f;
 
 	static inline const float kSquashDuration = 0.12f;
-	static inline const float kSquashWaitTime = 0.35f;
+	static inline const float kSquashWaitTime = 0.15f;
 	static inline const float kSquashedScaleY = 0.4f;
+
+	// 倒された時に煙になって消える演出
+	SmokeParticles smoke_;
+	KamataEngine::Model* smokeModel_ = nullptr;
 
 	KamataEngine::WorldTransform worldTransform_;
 	KamataEngine::Model* model_ = nullptr;

@@ -11,7 +11,7 @@
 
 using namespace KamataEngine;
 
-void Enemy::Initialize(Model* model, Camera* camera, MapChipField* mapChipField, const Vector3& position, Type type) {
+void Enemy::Initialize(Model* model, Camera* camera, MapChipField* mapChipField, const Vector3& position, Type type, Model* smokeModel) {
 	assert(model);
 	assert(mapChipField);
 
@@ -19,6 +19,11 @@ void Enemy::Initialize(Model* model, Camera* camera, MapChipField* mapChipField,
 	camera_ = camera;
 	mapChipField_ = mapChipField;
 	type_ = type;
+	smokeModel_ = smokeModel;
+
+	if (smokeModel_) {
+		smoke_.Initialize(smokeModel_, camera_);
+	}
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
@@ -45,6 +50,8 @@ void Enemy::Initialize(Model* model, Camera* camera, MapChipField* mapChipField,
 
 void Enemy::Update() {
 	if (state_ == State::kGone) {
+		// 消えた後も煙の演出だけ続ける
+		smoke_.Update();
 		return;
 	}
 
@@ -63,6 +70,11 @@ void Enemy::Update() {
 
 		if (squashTimer_ >= kSquashDuration + kSquashWaitTime) {
 			state_ = State::kGone;
+
+			// 煙になって消える
+			if (smokeModel_) {
+				smoke_.Start({worldTransform_.translation_.x, squashStartY_, worldTransform_.translation_.z});
+			}
 		}
 
 		return;
@@ -510,4 +522,6 @@ void Enemy::Draw() {
 	if (state_ != State::kGone) {
 		model_->Draw(worldTransform_, *camera_);
 	}
+
+	smoke_.Draw();
 }

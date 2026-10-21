@@ -48,6 +48,9 @@
     <ClCompile Include="GoalStar.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="SmokeParticles.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="DeathParticles.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -133,6 +136,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="GoalStar.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="SmokeParticles.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="CollisionMapInfo.h">

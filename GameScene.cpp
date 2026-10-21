@@ -11,6 +11,7 @@ void GameScene::Initialize() {
 	modelSkydome_ = Model::CreateFromOBJ("skydome", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
 	modelGoalStar_ = Model::CreateFromOBJ("star", true);
+	modelSmoke_ = Model::CreateFromOBJ("smoke", true);
 
 	camera_.Initialize();
 	debugCamera_ = new DebugCamera(1280, 720);
@@ -35,7 +36,7 @@ void GameScene::Initialize() {
 
 		const Vector3 position = mapChipField_->GetMapChipPositionByIndex(enemyColumn, 18);
 
-		enemy->Initialize(modelEnemy_, &camera_, mapChipField_, position, Enemy::Type::kGround);
+		enemy->Initialize(modelEnemy_, &camera_, mapChipField_, position, Enemy::Type::kGround, modelSmoke_);
 
 		enemies_.push_back(enemy);
 	}
@@ -47,7 +48,7 @@ void GameScene::Initialize() {
 		// X=46付近のゴール側、高さY=9付近
 		const Vector3 position = mapChipField_->GetMapChipPositionByIndex(46, 10);
 
-		flyingEnemy->Initialize(modelEnemy_, &camera_, mapChipField_, position, Enemy::Type::kFlying);
+		flyingEnemy->Initialize(modelEnemy_, &camera_, mapChipField_, position, Enemy::Type::kFlying, modelSmoke_);
 
 		enemies_.push_back(flyingEnemy);
 	}
@@ -318,10 +319,6 @@ void GameScene::Draw() {
 		player_->Draw();
 	}
 
-	for (Enemy* enemy : enemies_) {
-		enemy->Draw();
-	}
-
 	if (deathParticles_) {
 		deathParticles_->Draw();
 	}
@@ -334,6 +331,11 @@ void GameScene::Draw() {
 		}
 	}
 	goalStar_->Draw();
+
+	// 煙は半透明なので、背後のブロックが透けて見えるようにブロックの後に描画する
+	for (Enemy* enemy : enemies_) {
+		enemy->Draw();
+	}
 	Model::PostDraw();
 
 	if (fade_) {
@@ -437,6 +439,7 @@ GameScene::~GameScene() {
 	delete modelDeathParticle_;
 	delete goalStar_;
 	delete modelGoalStar_;
+	delete modelSmoke_;
 }
 
 bool GameScene::IsGoalReached() {
