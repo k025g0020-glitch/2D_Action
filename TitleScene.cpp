@@ -1,4 +1,5 @@
 #include "TitleScene.h"
+#include <cmath>
 
 using namespace KamataEngine;
 
@@ -14,6 +15,9 @@ void TitleScene::Initialize() {
 	fade_ = new Fade();
 	fade_->Initialize();
 
+	text_.Initialize(128);
+	blinkTimer_ = 0.0f;
+
 	// 初期フェーズ設定とフェードイン開始
 	phase_ = Phase::kFadeIn;
 	fade_->Start(Fade::Status::FadeIn, kFadeDuration);
@@ -24,6 +28,8 @@ void TitleScene::Update() {
 	if (fade_) {
 		fade_->Update();
 	}
+
+	blinkTimer_ += 1.0f / 60.0f;
 
 	switch (phase_) {
 	case Phase::kFadeIn:
@@ -52,6 +58,18 @@ void TitleScene::Update() {
 }
 
 void TitleScene::Draw() {
+	text_.Clear();
+
+	// 「PRESS SPACE」を点滅させる
+	if (std::fmod(blinkTimer_, 1.0f) < 0.6f) {
+		text_.Print("PRESS SPACE TO START", 640.0f, 400.0f, 40.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+	}
+	text_.Print("A / D : MOVE", 640.0f, 520.0f, 28.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+	text_.Print("SPACE / W : JUMP", 640.0f, 565.0f, 28.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+	text_.Print("HOLD JUMP TO JUMP HIGHER", 640.0f, 610.0f, 22.0f, {1.0f, 0.9f, 0.3f, 1.0f}, BitmapText::Align::kCenter);
+
+	text_.Draw();
+
 	// フェードの描画
 	if (fade_) {
 		fade_->Draw();

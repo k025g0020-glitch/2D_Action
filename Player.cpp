@@ -75,60 +75,95 @@ void Player::Update() {
 }
 
 void Player::Move() {
+	constexpr float kDeltaTime = 1.0f / 60.0f;
 
 	Input* input = Input::GetInstance();
+
+	// 操作キー：A/D で左右移動、SPACE または W でジャンプ
+	const bool pushRight = input->PushKey(DIK_D);
+	const bool pushLeft = input->PushKey(DIK_A);
+	const bool pushJump = input->PushKey(DIK_SPACE) || input->PushKey(DIK_W);
+	const bool triggerJump = input->TriggerKey(DIK_SPACE) || input->TriggerKey(DIK_W);
+
+	// 左右移動（空中でも少しだけ向きを変えられる）
+	const float accelerationX = onGround_ ? kAcceleration : kAirAcceleration;
 	Vector3 acceleration = {};
-	if (onGround_) {
-		if (input->PushKey(DIK_RIGHT)) {
-			// 左移動中の右入力
-			if (velocity_.x < 0.0f) {
-				// 速度と逆方向に入力中は急ブレーキ
-				velocity_.x *= (1.0f - kAttenuation);
-			}
-			acceleration.x += kAcceleration;
-
-			// 向きを右に更新
-			if (lrDirection_ != LRDirection::kRight) {
-				lrDirection_ = LRDirection::kRight;
-				// 旋回開始時の角度を記録する
-				turnFirstRotationY_ = worldTransform_.rotation_.y;
-				// 旋回タイマーに時間を設定する
-				turnTimer_ = kTimeTurn;
-			}
-		} else if (input->PushKey(DIK_LEFT)) {
-			// 右移動中の左入力
-			if (velocity_.x > 0.0f) {
-				// 速度と逆方向に入力中は急ブレーキ
-				velocity_.x *= (1.0f - kAttenuation);
-			}
-			acceleration.x -= kAcceleration;
-
-			// 向きを左に更新
-			if (lrDirection_ != LRDirection::kLeft) {
-				lrDirection_ = LRDirection::kLeft;
-				// 旋回開始時の角度を記録する
-				turnFirstRotationY_ = worldTransform_.rotation_.y;
-				// 旋回タイマーに時間を設定する
-				turnTimer_ = kTimeTurn;
-			}
-		}
-
-		if (input->PushKey(DIK_RIGHT) || input->PushKey(DIK_LEFT)) {
-			velocity_.x += acceleration.x;
-			velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
-		} else {
+	if (pushRight) {
+		// 左移動中の右入力
+		if (onGround_ && velocity_.x < 0.0f) {
+			// 速度と逆方向に入力中は急ブレーキ
 			velocity_.x *= (1.0f - kAttenuation);
 		}
+		acceleration.x += accelerationX;
 
-		if (input->TriggerKey(DIK_UP)) {
-			velocity_.y += kJumpAcceleration;
+		// 向きを右に更新
+		if (lrDirection_ != LRDirection::kRight) {
+			lrDirection_ = LRDirection::kRight;
+			// 旋回開始時の角度を記録する
+			turnFirstRotationY_ = worldTransform_.rotation_.y;
+			// 旋回タイマーに時間を設定する
+			turnTimer_ = kTimeTurn;
 		}
+	} else if (pushLeft) {
+		// 右移動中の左入力
+		if (onGround_ && velocity_.x > 0.0f) {
+			// 速度と逆方向に入力中は急ブレーキ
+			velocity_.x *= (1.0f - kAttenuation);
+		}
+		acceleration.x -= accelerationX;
 
+		// 向きを左に更新
+		if (lrDirection_ != LRDirection::kLeft) {
+			lrDirection_ = LRDirection::kLeft;
+			// 旋回開始時の角度を記録する
+			turnFirstRotationY_ = worldTransform_.rotation_.y;
+			// 旋回タイマーに時間を設定する
+			turnTimer_ = kTimeTurn;
+		}
+	}
+
+	if (pushRight || pushLeft) {
+		velocity_.x += acceleration.x;
+		velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
+	} else if (onGround_) {
+		velocity_.x *= (1.0f - kAttenuation);
+	}
+
+	if (onGround_) {
+		// 地上にいる間はコヨーテタイムを満タンにしておく
+		coyoteTimer_ = kCoyoteTime;
+		isJumping_ = false;
 	} else {
+		coyoteTimer_ = std::max(coyoteTimer_ - kDeltaTime, 0.0f);
+
 		// 空中（落下速度の加算）
 		velocity_.y -= kGravityAcceleration;
 		// 落下速度制限（下方向への速度を一定値に丸める）
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
+
+		// 上昇中にジャンプボタンを離したら上昇を弱めて小ジャンプにする
+		if (isJumping_ && !pushJump && velocity_.y > 0.0f) {
+			velocity_.y *= kJumpCutRate;
+			isJumping_ = false;
+		}
+		if (velocity_.y <= 0.0f) {
+			isJumping_ = false;
+		}
+	}
+
+	// ジャンプの先行入力
+	if (triggerJump) {
+		jumpBufferTimer_ = kJumpBufferTime;
+	} else {
+		jumpBufferTimer_ = std::max(jumpBufferTimer_ - kDeltaTime, 0.0f);
+	}
+
+	// 地上か、足場から落ちた直後ならジャンプできる
+	if (jumpBufferTimer_ > 0.0f && coyoteTimer_ > 0.0f) {
+		velocity_.y = kJumpAcceleration;
+		isJumping_ = true;
+		jumpBufferTimer_ = 0.0f;
+		coyoteTimer_ = 0.0f;
 	}
 }
 
@@ -471,7 +506,12 @@ void Player::OnCollision(const Enemy* enemy) {
 }
 
 void Player::BounceFromEnemy() {
-	velocity_.y = kStompBounceSpeed;
+	// ジャンプボタンを押していると高く跳ねる
+	Input* input = Input::GetInstance();
+	const bool pushJump = input->PushKey(DIK_SPACE) || input->PushKey(DIK_W);
+
+	velocity_.y = pushJump ? kStompBounceHighSpeed : kStompBounceSpeed;
+	isJumping_ = pushJump;
 	onGround_ = false;
 }
 

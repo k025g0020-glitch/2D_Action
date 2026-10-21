@@ -39,6 +39,13 @@ public:
 private:
 	void UpdateFlying();
 	void UpdateWorldTransform();
+	// 進行方向を反転する
+	void TurnAround();
+	// 進行方向の足元に床がないか（足場の端か）
+	bool IsEdgeAhead();
+
+	// これより下に落ちたら消える
+	static inline const float kFallOutY = -2.0f;
 
 	Type type_ = Type::kGround;
 

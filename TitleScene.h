@@ -1,4 +1,5 @@
 #pragma once
+#include "BitmapText.h"
 #include "Fade.h"
 #include "KamataEngine.h"
 
@@ -32,4 +33,8 @@ private:
 
 	// フェードオブジェクト
 	Fade* fade_ = nullptr;
+
+	// 操作説明などの文字
+	BitmapText text_;
+	float blinkTimer_ = 0.0f;
 };

@@ -2,9 +2,18 @@
 #include "KamataEngine.h"
 
 
+// CSVの数値とマップチップの対応
+// 0:空白 1:ブロック 2:コイン 3:プレイヤー開始位置 4:地上敵 5:飛行敵 6:無敵敵 7:ゴールの星 8:中間ポイント
 enum class MapChipType {
 	kBlank,
 	kBlock,
+	kCoin,
+	kPlayerStart,
+	kGroundEnemy,
+	kFlyingEnemy,
+	kInvincibleEnemy,
+	kGoal,
+	kCheckpoint,
 };
 
 struct MapChipData {
@@ -47,6 +56,10 @@ public:
 	uint32_t GetNumBlockHorizontal() const { 
 		return kNumBlockHorizontal; 
 	}
+	// CSVに実際に書かれていた横方向のブロック数（ステージの幅）
+	uint32_t GetStageWidth() const { return stageWidth_; }
+	float GetBlockWidth() const { return kBlockWidth; }
+	float GetBlockHeight() const { return kBlockHeight; }
 
 
 private:
@@ -58,5 +71,7 @@ private:
 	static inline const uint32_t kNumBlockHorizontal = 100;
 
 	MapChipData mapChipData_;
+
+	uint32_t stageWidth_ = 0;
 
 };

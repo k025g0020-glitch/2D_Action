@@ -166,6 +166,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="calc.cpp" />
+    <ClCompile Include="BitmapText.cpp" />
+    <ClCompile Include="Checkpoint.cpp" />
+    <ClCompile Include="Coin.cpp" />
+    <ClCompile Include="ResultScene.cpp" />
+    <ClCompile Include="StageIntroScene.cpp" />
     <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="DeathParticles.cpp" />
     <ClCompile Include="Enemy.cpp" />
@@ -280,6 +285,12 @@
   <ItemGroup>
     <ClInclude Include="calc.h" />
     <ClInclude Include="CameraController.h" />
+    <ClInclude Include="BitmapText.h" />
+    <ClInclude Include="Checkpoint.h" />
+    <ClInclude Include="Coin.h" />
+    <ClInclude Include="ResultScene.h" />
+    <ClInclude Include="StageIntroScene.h" />
+    <ClInclude Include="GameSession.h" />
     <ClInclude Include="CollisionMapInfo.h" />
     <ClInclude Include="DeathParticles.h" />
     <ClInclude Include="Enemy.h" />

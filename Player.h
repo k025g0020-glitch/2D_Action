@@ -27,6 +27,9 @@ public:
 	void BounceFromEnemy();
 
 	bool IsDead() const { return isDead_; }
+	// 穴への落下や時間切れでミスにする
+	void Die() { isDead_ = true; }
+	bool IsOnGround() const { return onGround_; }
 
 private:
 
@@ -88,6 +91,8 @@ private:
 	static inline const float kAcceleration = 0.1f;
 	static inline const float kAttenuation = 0.1f;
 	static inline const float kLimitRunSpeed = 0.3f;
+	// 空中での左右の加速度（地上より弱め）
+	static inline const float kAirAcceleration = 0.02f;
 
 	// 接地状態フラグ
 	bool onGround_ = true;
@@ -99,6 +104,19 @@ private:
 	// ジャンプ初速（上方向）
 	static inline const float kJumpAcceleration = 0.8f;
 	static inline const float kStompBounceSpeed = 0.6f;
+	// ジャンプボタンを押したまま敵を踏んだ時の跳ね返り
+	static inline const float kStompBounceHighSpeed = 0.8f;
+	// 上昇中にジャンプボタンを離した時に上向きの速度に掛ける割合（小ジャンプ）
+	static inline const float kJumpCutRate = 0.4f;
+	// 足場から落ちた後もジャンプできる猶予時間<秒>（コヨーテタイム）
+	static inline const float kCoyoteTime = 0.1f;
+	// 着地前に押したジャンプを覚えておく時間<秒>（先行入力）
+	static inline const float kJumpBufferTime = 0.12f;
+
+	// ジャンプボタンを押したまま上昇中か
+	bool isJumping_ = false;
+	float coyoteTimer_ = 0.0f;
+	float jumpBufferTimer_ = 0.0f;
 
 	//キャラクターの当たり判定サイズ
 	static inline const float kWidth = 0.8f;

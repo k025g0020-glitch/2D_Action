@@ -94,6 +94,11 @@ void Enemy::Update() {
 	}
 
 	// ここから通常の地上敵
+	// 足場の端で引き返して穴に落ちないようにする
+	if (onGround_ && IsEdgeAhead()) {
+		TurnAround();
+	}
+
 	Move();
 
 	CollisionMapInfo collisionMapInfo;
@@ -126,20 +131,17 @@ void Enemy::Update() {
 
 	// 壁に当たったら進行方向を反転
 	if (collisionMapInfo.hitWall) {
-		if (lrDirection_ == LRDirection::kRight) {
-			lrDirection_ = LRDirection::kLeft;
-		} else {
-			lrDirection_ = LRDirection::kRight;
-		}
-
-		turnFirstRotationY_ = worldTransform_.rotation_.y;
-
-		turnTimer_ = kTimeTurn;
-		velocity_.x = 0.0f;
+		TurnAround();
 	}
 
 	ApplyMove(collisionMapInfo);
 	OnGroundToggle(collisionMapInfo);
+
+	// 穴に落ちたら消える
+	if (worldTransform_.translation_.y < kFallOutY) {
+		state_ = State::kGone;
+		return;
+	}
 
 	// 歩行アニメーション
 	walkTimer_ += 1.0f / 60.0f;
@@ -153,6 +155,33 @@ void Enemy::Update() {
 	worldTransform_.rotation_.x = degree * (std::numbers::pi_v<float> / 180.0f);
 
 	UpdateWorldTransform();
+}
+
+void Enemy::TurnAround() {
+	if (lrDirection_ == LRDirection::kRight) {
+		lrDirection_ = LRDirection::kLeft;
+	} else {
+		lrDirection_ = LRDirection::kRight;
+	}
+
+	turnFirstRotationY_ = worldTransform_.rotation_.y;
+
+	turnTimer_ = kTimeTurn;
+	velocity_.x = 0.0f;
+}
+
+bool Enemy::IsEdgeAhead() {
+	const float direction = (lrDirection_ == LRDirection::kRight) ? 1.0f : -1.0f;
+
+	// 進行方向側の足元の少し先・少し下を調べる
+	const Vector3 checkPosition = {
+	    worldTransform_.translation_.x + direction * (kWidth / 2.0f + 0.05f),
+	    worldTransform_.translation_.y - kHeight / 2.0f - 0.1f,
+	    0.0f,
+	};
+
+	const MapChipField::IndexSet indexSet = mapChipField_->GetMapChipIndexByPosition(checkPosition);
+	return mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y) != MapChipType::kBlock;
 }
 
 void Enemy::Move() {
