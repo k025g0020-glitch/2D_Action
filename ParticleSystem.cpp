@@ -184,6 +184,24 @@ void ParticleSystem::EmitRunDust(const Vector3& feet, float direction) {
 	Emit(desc);
 }
 
+void ParticleSystem::EmitWallJumpDust(const Vector3& wallPoint, float wallDirection) {
+	// 壁から離れる向きに、上下に広がる
+	for (uint32_t i = 0; i < 6; ++i) {
+		EmitDesc desc;
+		desc.model = sphereModel_;
+		desc.position = {wallPoint.x, wallPoint.y, wallPoint.z - 0.2f};
+		desc.positionRandom = {0.02f, 0.25f, 0.0f};
+		desc.velocity = {-wallDirection * 0.05f, 0.0f, 0.0f};
+		desc.velocityRandom = {0.02f, 0.04f, 0.0f};
+		desc.color = kDustColor;
+		desc.startScale = 0.15f;
+		desc.endScale = 0.35f;
+		desc.drag = 0.88f;
+		desc.life = 0.35f;
+		Emit(desc);
+	}
+}
+
 void ParticleSystem::EmitSparkles(const Vector3& position, const Vector4& color, uint32_t count, float speed) {
 	const float angleUnit = 2.0f * std::numbers::pi_v<float> / static_cast<float>(count);
 	for (uint32_t i = 0; i < count; ++i) {

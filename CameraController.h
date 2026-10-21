@@ -45,6 +45,11 @@ private:
 	static inline const float kVelocityBias = 6.0f;
 	static inline const float kDirectionThreshold = 0.01f;
 	static inline const float kFixedCameraY = 6.0f;
+	// プレイヤーが「カメラの高さ + これ」より上に登ったら、カメラも上に付いていく
+	static inline const float kVerticalFollowOffset = 3.5f;
+
+	// カメラの高さ（普段は固定、プレイヤーが高く登った時だけ上がる）
+	float CalculateCameraY(float targetY) const { return (std::max)(kFixedCameraY, targetY - kVerticalFollowOffset); }
 	static inline const Rect kMargin = {-6.0f, 6.0f, -2.0f, 2.0f};
 
 	// 平行投影で縦に映す範囲の半分（13ブロック分を映す）

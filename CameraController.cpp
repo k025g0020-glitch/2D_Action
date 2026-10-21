@@ -14,7 +14,7 @@ void CameraController::Reset() {
 
 	lookAheadOffsetX_ = facingDirection_ * kLookAheadDistance;
 	camera_->translation_.x = std::clamp(targetWorldTransform.translation_.x + lookAheadOffsetX_ + targetOffset_.x, movableArea_.left, movableArea_.right);
-	camera_->translation_.y = std::clamp(kFixedCameraY + targetOffset_.y, movableArea_.bottom, movableArea_.top);
+	camera_->translation_.y = std::clamp(CalculateCameraY(targetWorldTransform.translation_.y) + targetOffset_.y, movableArea_.bottom, movableArea_.top);
 	camera_->translation_.z = targetWorldTransform.translation_.z + targetOffset_.z;
 	camera_->UpdateMatrix();
 	ApplyOrthographicProjection();
@@ -40,7 +40,7 @@ void CameraController::Update() {
 	lookAheadOffsetX_ = std::lerp(lookAheadOffsetX_, desiredLookAhead, kLookAheadInterpolationRate);
 
 	targetPosition_.x = targetWorldTransform.translation_.x + targetOffset_.x + lookAheadOffsetX_ + targetVelocity.x * kVelocityBias;
-	targetPosition_.y = kFixedCameraY + targetOffset_.y;
+	targetPosition_.y = CalculateCameraY(targetWorldTransform.translation_.y) + targetOffset_.y;
 	targetPosition_.z = targetWorldTransform.translation_.z + targetOffset_.z + targetVelocity.z * kVelocityBias;
 
 	camera_->translation_ = calc::Lerp(camera_->translation_, targetPosition_, kInterpolationRate);

@@ -47,5 +47,10 @@ void StageIntroScene::Draw() {
 		text_.Print("FROM CHECKPOINT", 640.0f, 450.0f, 28.0f, {1.0f, 0.5f, 0.4f, 1.0f}, BitmapText::Align::kCenter);
 	}
 
+	// ステージごとのヒント
+	if (const char* hint = session_->GetStage().hint) {
+		text_.Print(hint, 640.0f, 540.0f, 28.0f, {1.0f, 0.9f, 0.3f, 1.0f}, BitmapText::Align::kCenter);
+	}
+
 	text_.Draw();
 }
