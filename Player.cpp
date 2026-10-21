@@ -1,5 +1,7 @@
 #define NOMINMAX
 #include <algorithm>
+#include <cmath>
+#include <iterator>
 #include <array>
 #include <numbers>
 
@@ -72,6 +74,17 @@ void Player::Update() {
 	// 接地状態の切り替え処理
 	OnGroundToggle(collisionMapInfo);
 
+	// 3段目の宙返り（進行方向に向かって前転する）
+	if (isFlipping_) {
+		flipAngle_ += kFlipSpeed;
+		if (flipAngle_ >= 2.0f * std::numbers::pi_v<float>) {
+			flipAngle_ = 0.0f;
+			isFlipping_ = false;
+		}
+	}
+	const float flipDirection = (lrDirection_ == LRDirection::kRight) ? -1.0f : 1.0f;
+	worldTransform_.rotation_.z = flipAngle_ * flipDirection;
+
 	worldTransform_.matWorld_ = calc::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 	worldTransform_.TransferMatrix();
 
@@ -83,9 +96,10 @@ void Player::Move() {
 
 	Input* input = Input::GetInstance();
 
-	// 操作キー：A/D で左右移動、SPACE または W でジャンプ
+	// 操作キー：A/D で左右移動、SPACE または W でジャンプ、SHIFT を押している間ダッシュ
 	const bool pushRight = input->PushKey(DIK_D);
 	const bool pushLeft = input->PushKey(DIK_A);
+	const bool pushDash = input->PushKey(DIK_LSHIFT) || input->PushKey(DIK_RSHIFT);
 	const bool pushJump = input->PushKey(DIK_SPACE) || input->PushKey(DIK_W);
 	const bool triggerJump = input->TriggerKey(DIK_SPACE) || input->TriggerKey(DIK_W);
 
@@ -128,10 +142,25 @@ void Player::Move() {
 	}
 
 	if (pushRight || pushLeft) {
+		const float previousSpeed = std::abs(velocity_.x);
 		velocity_.x += acceleration.x;
-		velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
+
+		// ダッシュ中は最高速度が上がる。ダッシュをやめた時は急に遅くならず、少しずつ落とす
+		const float limitSpeed = pushDash ? kLimitDashSpeed : kLimitRunSpeed;
+		if (std::abs(velocity_.x) > limitSpeed) {
+			const float allowedSpeed = std::max(limitSpeed, previousSpeed - kOverSpeedDeceleration);
+			velocity_.x = std::clamp(velocity_.x, -allowedSpeed, allowedSpeed);
+		}
 	} else if (onGround_) {
 		velocity_.x *= (1.0f - kAttenuation);
+	}
+
+	// 着地してから時間が経ったら3段ジャンプの段数をリセット
+	if (onGround_) {
+		multiJumpTimer_ = std::max(multiJumpTimer_ - kDeltaTime, 0.0f);
+		if (multiJumpTimer_ <= 0.0f) {
+			jumpStage_ = 0;
+		}
 	}
 
 	if (onGround_) {
@@ -165,7 +194,22 @@ void Player::Move() {
 
 	// 地上か、足場から落ちた直後ならジャンプできる
 	if (jumpBufferTimer_ > 0.0f && coyoteTimer_ > 0.0f) {
-		velocity_.y = kJumpAcceleration;
+		// ダッシュの勢いのまま着地直後にジャンプすると、2段目・3段目と高く跳べる
+		const bool canChain = pushDash && multiJumpTimer_ > 0.0f && std::abs(velocity_.x) >= kMultiJumpMinSpeed;
+		if (canChain && jumpStage_ < std::size(kMultiJumpSpeeds)) {
+			++jumpStage_;
+		} else {
+			jumpStage_ = 1;
+		}
+		multiJumpTimer_ = 0.0f;
+
+		// 3段目は宙返りする
+		if (jumpStage_ == std::size(kMultiJumpSpeeds)) {
+			isFlipping_ = true;
+			flipAngle_ = 0.0f;
+		}
+
+		velocity_.y = kMultiJumpSpeeds[jumpStage_ - 1];
 		isJumping_ = true;
 		jumpBufferTimer_ = 0.0f;
 		coyoteTimer_ = 0.0f;
@@ -447,6 +491,11 @@ void Player::OnGroundToggle(const CollisionMapInfo& info) {
 		if (info.landing) {
 			// 接地状態に切り替える（落下を止める）
 			onGround_ = true;
+			// 3段ジャンプの受付開始。3段目の後は1段目に戻す
+			multiJumpTimer_ = (jumpStage_ < std::size(kMultiJumpSpeeds)) ? kMultiJumpWindow : 0.0f;
+			// 宙返りを終わらせて姿勢を戻す
+			isFlipping_ = false;
+			flipAngle_ = 0.0f;
 			// 着地時にX速度を減衰（左右を押し続けている時は勢いを保つ）
 			if (!hasMoveInput_) {
 				velocity_.x *= (1.0f - kAttenuationLanding);
@@ -524,6 +573,8 @@ void Player::BounceFromEnemy() {
 
 	velocity_.y = pushJump ? kStompBounceHighSpeed : kStompBounceSpeed;
 	isJumping_ = pushJump;
+	// 踏みつけの後は3段ジャンプを1段目からやり直す
+	jumpStage_ = 0;
 	onGround_ = false;
 }
 

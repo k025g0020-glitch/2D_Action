@@ -105,6 +105,11 @@ private:
 	// 左右の入力があるか（着地時の減速に使う）
 	bool hasMoveInput_ = false;
 
+	// ダッシュ（SHIFTを押している間）の最高速度
+	static inline const float kLimitDashSpeed = 0.28f;
+	// 最高速度を超えている時に1フレームで落とす速度（ダッシュをやめた時に急に止まらないように）
+	static inline const float kOverSpeedDeceleration = 0.008f;
+
 	// 接地状態フラグ
 	bool onGround_ = true;
 
@@ -130,6 +135,24 @@ private:
 	bool isJumping_ = false;
 	float coyoteTimer_ = 0.0f;
 	float jumpBufferTimer_ = 0.0f;
+
+	// 3段ジャンプ
+	// 着地してからこの時間内にジャンプすると次の段になる<秒>
+	static inline const float kMultiJumpWindow = 0.15f;
+	// 次の段に進むのに必要な横方向の速さ（ダッシュ中でないと出ない速さ）
+	static inline const float kMultiJumpMinSpeed = 0.2f;
+	// 1段目・2段目・3段目のジャンプ初速
+	static inline const float kMultiJumpSpeeds[] = {kJumpAcceleration, 0.75f, 0.88f};
+	// 3段目の宙返りの回転速度（ラジアン/フレーム）
+	static inline const float kFlipSpeed = 0.3f;
+
+	// 今が何段目のジャンプか（0:地上で待機中, 1〜3）
+	uint32_t jumpStage_ = 0;
+	// 着地してからの、次の段に進める残り時間
+	float multiJumpTimer_ = 0.0f;
+	// 3段目の宙返りの角度
+	float flipAngle_ = 0.0f;
+	bool isFlipping_ = false;
 
 	//キャラクターの当たり判定サイズ
 	static inline const float kWidth = 0.8f;
