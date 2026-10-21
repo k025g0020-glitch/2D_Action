@@ -2,6 +2,7 @@
 #include "KamataEngine.h"
 #include "CollisionMapInfo.h"
 #include <cassert>
+#include <cmath>
 
 class MapChipField;
 
@@ -34,6 +35,22 @@ public:
 	// 一定時間無敵にする（復活直後など）。無敵中は点滅し、敵に触れてもミスにならない
 	void StartInvincible(float seconds) { invincibleTimer_ = seconds; }
 	bool IsInvincible() const { return invincibleTimer_ > 0.0f; }
+
+	// ---- エフェクト用：このフレームに起きたこと ----
+	// ジャンプした（GetJumpStage で何段目か分かる）
+	bool HasJumped() const { return hasJumped_; }
+	uint32_t GetJumpStage() const { return jumpStage_; }
+	// 着地した（GetLandingSpeed は着地直前の落下の速さ）
+	bool HasLanded() const { return hasLanded_; }
+	float GetLandingSpeed() const { return landingSpeed_; }
+	// 地上でダッシュしている
+	bool IsDashingOnGround() const { return onGround_ && isDashing_ && std::abs(velocity_.x) > kLimitRunSpeed; }
+	// 地上で進行方向と逆に入力してブレーキをかけている
+	bool IsSkidding() const { return isSkidding_; }
+	// 足元の座標
+	KamataEngine::Vector3 GetFeetPosition() const {
+		return {worldTransform_.translation_.x, worldTransform_.translation_.y - kHeight / 2.0f, worldTransform_.translation_.z};
+	}
 
 private:
 
@@ -150,6 +167,15 @@ private:
 	uint32_t jumpStage_ = 0;
 	// 着地してからの、次の段に進める残り時間
 	float multiJumpTimer_ = 0.0f;
+	// このフレームに起きたこと（エフェクト用）
+	bool hasJumped_ = false;
+	bool hasLanded_ = false;
+	float landingSpeed_ = 0.0f;
+	bool isDashing_ = false;
+	bool isSkidding_ = false;
+	// これより速い時の切り返しでブレーキの砂ぼこりを出す
+	static inline const float kSkidSpeed = 0.1f;
+
 	// 3段目の宙返りの角度
 	float flipAngle_ = 0.0f;
 	bool isFlipping_ = false;

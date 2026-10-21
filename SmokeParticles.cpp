@@ -5,21 +5,9 @@
 #include <cassert>
 #include <cmath>
 #include <numbers>
-#include <random>
+#include "Random.h"
 
 using namespace KamataEngine;
-
-namespace {
-std::mt19937& RandomEngine() {
-	static std::mt19937 engine(std::random_device{}());
-	return engine;
-}
-
-float RandomRange(float min, float max) {
-	std::uniform_real_distribution<float> distribution(min, max);
-	return distribution(RandomEngine());
-}
-} // namespace
 
 void SmokeParticles::Initialize(Model* model, Camera* camera) {
 	assert(model);

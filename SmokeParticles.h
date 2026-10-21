@@ -14,7 +14,7 @@ public:
 	bool IsActive() const { return isActive_; }
 
 private:
-	static inline const uint32_t kNumParticles = 10;
+	static inline const uint32_t kNumParticles = 14;
 	// 煙が消えるまでの時間（秒）
 	static inline const float kDuration = 0.6f;
 	// 初速と減衰率

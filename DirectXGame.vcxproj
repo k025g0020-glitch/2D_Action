@@ -180,6 +180,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MapChipField.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Skydome.cpp" />
     <ClCompile Include="SmokeParticles.cpp" />
     <ClCompile Include="TitleScene.cpp" />
@@ -299,6 +300,8 @@
     <ClInclude Include="GoalStar.h" />
     <ClInclude Include="MapChipField.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="ParticleSystem.h" />
+    <ClInclude Include="Random.h" />
     <ClInclude Include="Skydome.h" />
     <ClInclude Include="SmokeParticles.h" />
     <ClInclude Include="TitleScene.h" />

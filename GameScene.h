@@ -10,6 +10,7 @@
 #include "GoalStar.h"
 #include "KamataEngine.h"
 #include "MapChipField.h"
+#include "ParticleSystem.h"
 #include "Player.h"
 #include "Skydome.h"
 #include "calc.h"
@@ -64,6 +65,8 @@ private:
 	void AddStompScore(const KamataEngine::Vector3& position);
 	void AddPopup(const KamataEngine::Vector3& position, const std::string& text);
 	void StartDeath();
+	// プレイヤーの動き（ジャンプ・着地・ダッシュ・ブレーキ）に合わせてパーティクルを出す
+	void EmitPlayerEffects();
 	void DrawHud();
 	KamataEngine::Vector2 WorldToScreen(const KamataEngine::Vector3& position) const;
 
@@ -121,6 +124,15 @@ private:
 	DeathParticles* deathParticles_ = nullptr;
 	GoalStar* goalStar_ = nullptr;
 	Fade* fade_ = nullptr;
+
+	// 砂ぼこり・キラキラなどの演出
+	ParticleSystem particles_;
+	// 一定間隔で出す演出用のフレームカウンタ
+	uint32_t effectFrame_ = 0;
+	// 走っている時の砂ぼこりを出す間隔（フレーム）
+	static inline const uint32_t kRunDustInterval = 4;
+	// ゴールの星のまわりで光る間隔（フレーム）
+	static inline const uint32_t kTwinkleInterval = 10;
 
 	BitmapText text_;
 	std::list<ScorePopup> popups_;

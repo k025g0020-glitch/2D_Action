@@ -33,6 +33,10 @@ void Player::Initialize(Model* model, Camera* camera, MapChipField* mapChipField
 }
 
 void Player::Update() {
+	// エフェクト用のフラグはフレームごとにリセットする
+	hasJumped_ = false;
+	hasLanded_ = false;
+	isSkidding_ = false;
 	// 無敵時間を減らす
 	if (invincibleTimer_ > 0.0f) {
 		invincibleTimer_ = std::max(invincibleTimer_ - 1.0f / 60.0f, 0.0f);
@@ -106,6 +110,9 @@ void Player::Move() {
 	// 左右移動（空中でも少しだけ向きを変えられる）
 	const float accelerationX = onGround_ ? kAcceleration : kAirAcceleration;
 	hasMoveInput_ = pushRight || pushLeft;
+	isDashing_ = pushDash && hasMoveInput_;
+	// 地上で速く動いている時に逆方向へ入力したらブレーキ
+	isSkidding_ = onGround_ && std::abs(velocity_.x) > kSkidSpeed && ((pushRight && velocity_.x < 0.0f) || (pushLeft && velocity_.x > 0.0f));
 	Vector3 acceleration = {};
 	if (pushRight) {
 		// 左移動中の右入力
@@ -210,6 +217,7 @@ void Player::Move() {
 		}
 
 		velocity_.y = kMultiJumpSpeeds[jumpStage_ - 1];
+		hasJumped_ = true;
 		isJumping_ = true;
 		jumpBufferTimer_ = 0.0f;
 		coyoteTimer_ = 0.0f;
@@ -491,6 +499,8 @@ void Player::OnGroundToggle(const CollisionMapInfo& info) {
 		if (info.landing) {
 			// 接地状態に切り替える（落下を止める）
 			onGround_ = true;
+			hasLanded_ = true;
+			landingSpeed_ = -velocity_.y;
 			// 3段ジャンプの受付開始。3段目の後は1段目に戻す
 			multiJumpTimer_ = (jumpStage_ < std::size(kMultiJumpSpeeds)) ? kMultiJumpWindow : 0.0f;
 			// 宙返りを終わらせて姿勢を戻す

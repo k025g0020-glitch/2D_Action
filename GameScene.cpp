@@ -24,6 +24,7 @@ void GameScene::Initialize(GameSession* session) {
 	modelCheckpoint_ = Model::CreateFromOBJ("checkpoint", true);
 
 	camera_.Initialize();
+	particles_.Initialize(modelSmoke_, modelGoalStar_, &camera_);
 	debugCamera_ = new DebugCamera(1280, 720);
 
 	skydome_ = new Skydome();
@@ -257,6 +258,30 @@ void GameScene::StartDeath() {
 	deathParticles_->Initialize(modelDeathParticle_, &camera_, deathParticlesPosition);
 }
 
+void GameScene::EmitPlayerEffects() {
+	const Vector3 feet = player_->GetFeetPosition();
+	const float velocityX = player_->GetVelocity().x;
+
+	if (player_->HasJumped()) {
+		particles_.EmitJumpDust(feet, player_->GetJumpStage());
+		// 3段目は星の輪
+		if (player_->GetJumpStage() == 3) {
+			particles_.EmitStarRing(player_->GetWorldPosition());
+		}
+	}
+
+	if (player_->HasLanded()) {
+		particles_.EmitLandingDust(feet, player_->GetLandingSpeed());
+	}
+
+	// ブレーキ中は進行方向の前に（ブレーキは一瞬なので毎フレーム）、ダッシュ中は後ろに砂ぼこりを出す
+	if (player_->IsSkidding()) {
+		particles_.EmitRunDust(feet, velocityX > 0.0f ? 1.0f : -1.0f);
+	} else if (player_->IsDashingOnGround() && effectFrame_ % kRunDustInterval == 0) {
+		particles_.EmitRunDust(feet, velocityX > 0.0f ? -1.0f : 1.0f);
+	}
+}
+
 void GameScene::UpdateStageObjects() {
 	// 天球の更新（カメラに合わせて動かす）
 	skydome_->Follow(camera_.translation_);
@@ -277,6 +302,23 @@ void GameScene::UpdateStageObjects() {
 
 	// ゴールの星の更新
 	goalStar_->Update();
+
+	// 星のまわりのキラキラ（取った後はたくさん出す）
+	++effectFrame_;
+	{
+		const AABB starAABB = goalStar_->GetAABB();
+		const Vector3 starCenter = {(starAABB.min.x + starAABB.max.x) * 0.5f, (starAABB.min.y + starAABB.max.y) * 0.5f, 0.0f};
+		if (goalStar_->IsCollected()) {
+			if (effectFrame_ % 2 == 0) {
+				particles_.EmitTwinkle(starCenter, 0.6f);
+				particles_.EmitTwinkle(starCenter, 0.6f);
+			}
+		} else if (effectFrame_ % kTwinkleInterval == 0) {
+			particles_.EmitTwinkle(starCenter, 0.5f);
+		}
+	}
+
+	particles_.Update();
 
 	// 得点表示を上に流しながら消す
 	for (ScorePopup& popup : popups_) {
@@ -307,6 +349,7 @@ void GameScene::UpdateDebugCamera() {
 void GameScene::UpdatePlayPhase() {
 	// 自キャラの更新
 	player_->Update();
+	EmitPlayerEffects();
 
 	UpdateStageObjects();
 
@@ -328,6 +371,8 @@ void GameScene::UpdatePlayPhase() {
 	if (checkpoint_ && !checkpoint_->IsActivated() && checkpoint_->IsPassedBy(player_->GetWorldPosition())) {
 		checkpoint_->Activate();
 		session_->checkpointReached = true;
+		// 旗の先から紙吹雪
+		particles_.EmitConfetti(calc::Add(checkpoint_->GetPosition(), Vector3(0.4f, 1.3f, 0.0f)));
 		AddPopup(calc::Add(checkpoint_->GetPosition(), Vector3(0.0f, 2.0f, 0.0f)), "CHECKPOINT");
 	}
 
@@ -345,6 +390,12 @@ void GameScene::UpdatePlayPhase() {
 	// 星を獲得したらゴール
 	if (!player_->IsDead() && IsGoalReached()) {
 		goalStar_->Collect();
+		{
+			const AABB starAABB = goalStar_->GetAABB();
+			const Vector3 starCenter = {(starAABB.min.x + starAABB.max.x) * 0.5f, (starAABB.min.y + starAABB.max.y) * 0.5f, 0.0f};
+			particles_.EmitSparkles(starCenter, {1.0f, 0.85f, 0.3f, 1.0f}, 24, 0.2f);
+			particles_.EmitStarRing(starCenter);
+		}
 		isCleared_ = true;
 		result_ = Result::kCleared;
 
@@ -401,6 +452,9 @@ void GameScene::Draw() {
 	for (Enemy* enemy : enemies_) {
 		enemy->Draw();
 	}
+
+	// 半透明のパーティクルは最後にまとめて描画する
+	particles_.Draw();
 
 	if (deathParticles_) {
 		deathParticles_->Draw();
@@ -539,6 +593,7 @@ void GameScene::CheckAllCollisions() {
 
 			enemy->Defeat();
 			player_->BounceFromEnemy();
+			particles_.EmitStompImpact(calc::Add(enemy->GetWorldPosition(), Vector3(0.0f, 0.3f, 0.0f)));
 			++defeatedEnemies_;
 			AddStompScore(enemy->GetWorldPosition());
 
@@ -558,6 +613,11 @@ void GameScene::CheckAllCollisions() {
 		}
 
 		coin->Collect();
+		{
+			const AABB coinAABB = coin->GetAABB();
+			const Vector3 coinCenter = {(coinAABB.min.x + coinAABB.max.x) * 0.5f, (coinAABB.min.y + coinAABB.max.y) * 0.5f, 0.0f};
+			particles_.EmitSparkles(coinCenter, {1.0f, 0.85f, 0.25f, 1.0f}, 10, 0.08f);
+		}
 		++stageCoins_;
 		session_->AddScore(kCoinScore);
 		// 100枚集めたら1UP

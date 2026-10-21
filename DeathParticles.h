@@ -15,7 +15,7 @@ class DeathParticles {
 	bool IsFinished() const { return isFinished_; }
 
 private:
-	static inline const uint32_t kNumParticles = 8;
+	static inline const uint32_t kNumParticles = 16;
 	std::array<KamataEngine::WorldTransform, kNumParticles> worldTransform_;
 
 	KamataEngine::Model* model_ = nullptr;
