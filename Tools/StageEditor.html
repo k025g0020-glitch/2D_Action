@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2D_Action ステージエディタ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* レイアウト：左にタイルのパレット、中央にマップ、右に「チェック」と「書き出し」。狭い画面では縦に並ぶ */
+:root {
+  --bg: #eaeef3;
+  --panel: #ffffff;
+  --fg: #1b2230;
+  --muted: #5a6678;
+  --line: #d3dae4;
+  --accent: #d9480f;
+  --accent-fg: #ffffff;
+  --sky: #a5d8ff;
+  --sky-off: #7b97b4;
+  --grid: rgba(27, 34, 48, 0.12);
+  --grid-strong: rgba(27, 34, 48, 0.32);
+  --ok: #2b8a3e;
+  --warn: #b7791f;
+  --err: #c92a2a;
+  --chip-ok: #e6f4ea;
+  --chip-warn: #fff4db;
+  --chip-err: #fde8e8;
+  --font-display: "DotGothic16", "Hiragino Kaku Gothic ProN", "Yu Gothic", monospace;
+  --font-body: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", "Menlo", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --panel: #1a2029; --fg: #e5eaf1; --muted: #93a0b2; --line: #2c3542;
+    --accent: #ff8a4c; --accent-fg: #1a1208; --sky: #24537c; --sky-off: #17304a;
+    --grid: rgba(229, 234, 241, 0.10); --grid-strong: rgba(229, 234, 241, 0.30);
+    --ok: #69db7c; --warn: #ffc94d; --err: #ff8787;
+    --chip-ok: #193222; --chip-warn: #3a2f12; --chip-err: #3d1b1b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --panel: #1a2029; --fg: #e5eaf1; --muted: #93a0b2; --line: #2c3542;
+  --accent: #ff8a4c; --accent-fg: #1a1208; --sky: #24537c; --sky-off: #17304a;
+  --grid: rgba(229, 234, 241, 0.10); --grid-strong: rgba(229, 234, 241, 0.30);
+  --ok: #69db7c; --warn: #ffc94d; --err: #ff8787;
+  --chip-ok: #193222; --chip-warn: #3a2f12; --chip-err: #3d1b1b;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 32px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 1600px; margin: 0 auto; display: grid; gap: 16px; }
+
+header.top {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px;
+}
+.brand h1 {
+  font-family: var(--font-display); font-weight: 400; font-size: 28px; line-height: 1.2; margin: 0;
+  text-wrap: balance;
+}
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.field { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.field input[type="number"] { width: 72px; }
+input[type="number"], input[type="text"], select, textarea {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
+}
+.btn {
+  border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 12px;
+  cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 700; }
+
+.workspace {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1180px) {
+  .workspace { grid-template-columns: 196px minmax(0, 1fr); }
+  .side { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+}
+@media (max-width: 720px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+}
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+.panel h2 {
+  font-family: var(--font-display); font-weight: 400; font-size: 16px; margin: 0 0 8px; letter-spacing: 0.04em;
+}
+.panel h3 { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: 0.06em; margin: 12px 0 6px; }
+
+/* パレット */
+.palette { display: grid; gap: 4px; }
+@media (max-width: 720px) { .palette { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
+.tile-btn {
+  display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 8px;
+  border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 6px; cursor: pointer; text-align: left;
+}
+.tile-btn:hover { background: var(--bg); }
+.tile-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--bg); }
+.tile-btn canvas { width: 30px; height: 30px; border-radius: 4px; }
+.key {
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted); border: 1px solid var(--line);
+  border-radius: 4px; padding: 0 5px; line-height: 18px;
+}
+.tools { display: grid; grid-template-columns: 1fr; gap: 4px; }
+@media (max-width: 720px) { .tools { grid-template-columns: 1fr 1fr; } }
+.tool-btn { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 4px; white-space: nowrap; }
+.tool-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.toggles { display: grid; gap: 2px; font-size: 13px; }
+.toggles label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+
+/* マップ */
+.editor { display: grid; gap: 8px; min-width: 0; }
+.map-scroll {
+  overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+  max-height: calc(20 * 40px + 40px); position: relative;
+}
+.map-scroll.dragover { outline: 3px dashed var(--accent); outline-offset: -6px; }
+#map { display: block; touch-action: none; cursor: crosshair; }
+.statusbar {
+  display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.statusbar b { color: var(--fg); font-weight: 600; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+
+/* チェック */
+.summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.stat { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.stat .num { font-family: var(--font-mono); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat .label { font-size: 11px; color: var(--muted); }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.checks li { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; font-size: 13px; }
+.chip { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; white-space: nowrap; line-height: 18px; }
+.chip.ok { background: var(--chip-ok); color: var(--ok); }
+.chip.warn { background: var(--chip-warn); color: var(--warn); }
+.chip.err { background: var(--chip-err); color: var(--err); }
+
+/* 書き出し */
+textarea { width: 100%; min-height: 120px; font-family: var(--font-mono); font-size: 11px; line-height: 1.4; resize: vertical; white-space: pre; overflow: auto; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13px; }
+code { font-family: var(--font-mono); font-size: 12px; background: var(--bg); border-radius: 4px; padding: 1px 4px; overflow-wrap: anywhere; }
+.snippet { display: block; padding: 6px 8px; margin-top: 4px; }
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--fg); color: var(--bg); border-radius: 8px; padding: 8px 14px; font-size: 13px; z-index: 20;
+  max-width: calc(100% - 32px);
+}
+@media (prefers-reduced-motion: no-preference) { .toast { transition: opacity 0.2s; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>ステージエディタ</h1>
+      <p>2D_Action の <code>Resources/stage*.csv</code> を作る・直すためのツール（縦20マス × 横24〜100マス）</p>
+    </div>
+    <div class="toolbar">
+      <label class="field" for="preset">ひな形
+        <select id="preset">
+          <option value="">選んで読み込む…</option>
+          <option value="new">新しいステージ</option>
+          <option value="stage1">ステージ1（今のゲーム）</option>
+          <option value="stage2">ステージ2（今のゲーム）</option>
+        </select>
+      </label>
+      <label class="field" for="width">横幅
+        <input id="width" type="number" min="24" max="100" step="1" value="60">
+      </label>
+      <button class="btn" id="undo" type="button" title="元に戻す (Ctrl+Z)">元に戻す</button>
+      <button class="btn" id="redo" type="button" title="やり直す (Ctrl+Y)">やり直す</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="panel">
+      <h2>タイル</h2>
+      <div class="palette" id="palette" role="group" aria-label="置くタイル"></div>
+
+      <h3>ツール</h3>
+      <div class="tools" id="tools" role="group" aria-label="ツール">
+        <button class="tool-btn" type="button" data-tool="pen">ペン <span class="key">B</span></button>
+        <button class="tool-btn" type="button" data-tool="eraser">消しゴム <span class="key">E</span></button>
+        <button class="tool-btn" type="button" data-tool="rect">四角形 <span class="key">R</span></button>
+        <button class="tool-btn" type="button" data-tool="fill">塗りつぶし <span class="key">G</span></button>
+      </div>
+
+      <h3>表示</h3>
+      <div class="toggles">
+        <label for="showCamera"><input id="showCamera" type="checkbox" checked> カメラに映る範囲</label>
+        <label for="showPatrol"><input id="showPatrol" type="checkbox" checked> 敵の移動範囲</label>
+        <label for="showGrid"><input id="showGrid" type="checkbox" checked> マス目</label>
+        <label class="field" for="zoom">拡大 <input id="zoom" type="range" min="14" max="40" value="28"></label>
+      </div>
+      <p class="hint" style="margin-top:10px">右クリックで消す。開始位置・ゴール・中間ポイントは1つだけ置けます（置き直すと移動）。</p>
+    </aside>
+
+    <section class="editor" aria-label="マップ">
+      <div class="map-scroll" id="mapScroll">
+        <canvas id="map" aria-label="ステージのマップ。クリックでタイルを置く"></canvas>
+      </div>
+      <div class="statusbar" id="status">
+        <span>位置 <b id="stPos">-</b></span>
+        <span>足場からの高さ <b id="stHeight">-</b></span>
+        <span>タイル <b id="stTile">-</b></span>
+      </div>
+      <p class="hint">ジャンプの目安：普通のジャンプ 約4.5マス、ダッシュ中の3段ジャンプ 約6.0 → 8.2マス。飛ぶ敵は置いた高さから上下に約1.5マス動きます。CSVファイルはマップの上にドラッグ＆ドロップしても開けます。</p>
+    </section>
+
+    <div class="side">
+      <section class="panel" aria-labelledby="checkTitle">
+        <h2 id="checkTitle">チェック</h2>
+        <div class="summary">
+          <div class="stat"><div class="num" id="sumCoins">0</div><div class="label">コイン</div></div>
+          <div class="stat"><div class="num" id="sumEnemies">0</div><div class="label">敵</div></div>
+          <div class="stat"><div class="num" id="sumWidth">0</div><div class="label">横幅（マス）</div></div>
+        </div>
+        <ul class="checks" id="checks"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="exportTitle">
+        <h2 id="exportTitle">保存・読み込み</h2>
+        <div class="row">
+          <button class="btn primary" id="copyCsv" type="button">CSVをコピー</button>
+          <button class="btn" id="downloadCsv" type="button">CSVを保存</button>
+          <label class="btn" for="openFile">CSVを開く</label>
+          <input id="openFile" type="file" accept=".csv,text/csv,text/plain" hidden>
+        </div>
+        <p class="hint" id="downloadNote" hidden>このページの表示環境では保存ボタンが使えません。「CSVをコピー」して、テキストエディタで <code>.csv</code> として保存してください。</p>
+        <h3>CSV</h3>
+        <textarea id="csvOut" readonly aria-label="書き出したCSV" spellcheck="false"></textarea>
+        <details>
+          <summary>CSVのテキストを貼り付けて読み込む</summary>
+          <textarea id="csvIn" aria-label="読み込むCSV" spellcheck="false" placeholder="1,1,1,1,…"></textarea>
+          <div class="row"><button class="btn" id="loadText" type="button">このテキストを読み込む</button></div>
+        </details>
+
+        <h3>ゲームに追加する手順</h3>
+        <div class="row">
+          <label class="field" for="fileName">ファイル名 <input id="fileName" type="text" value="stage3.csv" style="width:110px"></label>
+          <label class="field" for="timeLimit">制限時間 <input id="timeLimit" type="number" min="10" max="999" value="150"> 秒</label>
+        </div>
+        <ol class="steps">
+          <li>CSVを <code>Resources/</code> フォルダに保存する</li>
+          <li><code>GameSession.h</code> の <code>kStages</code> の配列の要素数を1増やし、次の1行を追加する
+            <code class="snippet" id="snippet"></code>
+            <button class="btn" id="copySnippet" type="button" style="margin-top:4px">この行をコピー</button>
+          </li>
+        </ol>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---- ゲームと同じ定義 -------------------------------------------------
+  const ROWS = 20;            // MapChipField::kNumBlockVirtical
+  const MIN_COLS = 24;        // カメラの横幅（約23マス）より狭いとカメラの移動範囲が壊れる
+  const MAX_COLS = 100;       // MapChipField::kNumBlockHorizontal
+  const CAMERA_TOP_ROW = 7;   // カメラは y=-0.5〜12.5 を映す → 7行目より上は画面に映らない
+  const FLY_AMPLITUDE = 1.5;  // Enemy::kFlyingHeight
+
+  const T = { BLANK: 0, BLOCK: 1, COIN: 2, START: 3, GROUND: 4, FLYING: 5, INVINCIBLE: 6, GOAL: 7, CHECKPOINT: 8 };
+  const TILES = [
+    { id: T.BLANK, name: "空白" },
+    { id: T.BLOCK, name: "ブロック" },
+    { id: T.COIN, name: "コイン" },
+    { id: T.START, name: "開始位置", unique: true },
+    { id: T.GROUND, name: "地上の敵" },
+    { id: T.FLYING, name: "飛ぶ敵" },
+    { id: T.INVINCIBLE, name: "倒せない敵" },
+    { id: T.GOAL, name: "ゴールの星", unique: true },
+    { id: T.CHECKPOINT, name: "中間ポイント", unique: true },
+  ];
+
+  // 今のゲームのステージ（ひな形として読み込める）
+  const PRESETS = {
+    stage1: `1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,1,2,2,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,0,0,1
+1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,1,1,1,5,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,2,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,2,2,0,1,1,1,1,1,0,0,0,0,0,2,0,2,0,0,0,1,1,1,1,1,0,2,2,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,3,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,4,0,0,0,0,0,0,7,0,1
+1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1`,
+    stage2: `1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,4,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,1,1,1,1,0,4,0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1
+1,0,0,0,0,2,2,0,0,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1
+1,0,3,0,0,0,0,0,1,1,1,1,0,0,0,1,1,1,1,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,6,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,7,0,1
+1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,0,0,1,1,1,0,0,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1`,
+  };
+
+  // ---- 状態 ---------------------------------------------------------------
+  let cols = 60;
+  let grid = Array.from({ length: ROWS }, () => new Array(cols).fill(0));
+  let selectedTile = T.BLOCK;
+  let tool = "pen";
+  let cell = 28;
+  const RULER = 18; // 上の列番号の高さ
+  const undoStack = [];
+  const redoStack = [];
+  let hover = null;
+  let drag = null; // { button, start:{c,r}, last:{c,r}, erase }
+
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("map");
+  const ctx = canvas.getContext("2d");
+
+  function makeGrid(c) { return Array.from({ length: ROWS }, () => new Array(c).fill(T.BLANK)); }
+  function cloneGrid(g) { return g.map((row) => row.slice()); }
+
+  function newStage(c) {
+    const g = makeGrid(c);
+    for (let x = 0; x < c; x++) { g[0][x] = T.BLOCK; g[ROWS - 1][x] = T.BLOCK; }
+    for (let y = 0; y < ROWS; y++) { g[y][0] = T.BLOCK; g[y][c - 1] = T.BLOCK; }
+    g[18][2] = T.START;
+    g[18][c - 3] = T.GOAL;
+    return g;
+  }
+
+  // ---- 履歴 ---------------------------------------------------------------
+  function snapshot() { return { cols, grid: cloneGrid(grid) }; }
+  function pushUndo() {
+    undoStack.push(snapshot());
+    if (undoStack.length > 200) undoStack.shift();
+    redoStack.length = 0;
+    updateHistoryButtons();
+  }
+  function restore(s) { cols = s.cols; grid = cloneGrid(s.grid); $("width").value = cols; changed(); }
+  function undo() { if (!undoStack.length) return; redoStack.push(snapshot()); restore(undoStack.pop()); updateHistoryButtons(); }
+  function redo() { if (!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); updateHistoryButtons(); }
+  function updateHistoryButtons() { $("undo").disabled = !undoStack.length; $("redo").disabled = !redoStack.length; }
+
+  // ---- CSV ----------------------------------------------------------------
+  function toCsv() { return grid.map((row) => row.join(",")).join("\n") + "\n"; }
+
+  function parseCsv(text) {
+    // 末尾の空行だけを取り除く（途中の空行は空白だけの行として扱い、行がずれないようにする）
+    const lines = text.replace(/\r/g, "").split("\n");
+    while (lines.length && lines[lines.length - 1].trim() === "") lines.pop();
+    if (!lines.length) throw new Error("CSVが空です。");
+    let width = 0;
+    let unknown = 0;
+    const rows = lines.slice(0, ROWS).map((line) => {
+      const cells = line.split(",").map((w) => w.trim()).filter((w, i, a) => !(w === "" && i === a.length - 1));
+      width = Math.max(width, cells.length);
+      return cells.map((w) => {
+        const n = Number(w);
+        if (!Number.isInteger(n) || n < 0 || n > 8) { unknown++; return T.BLANK; }
+        return n;
+      });
+    });
+    if (width > MAX_COLS) throw new Error(`横幅が${width}マスあります。ゲームが読み込めるのは${MAX_COLS}マスまでです。`);
+    width = Math.max(width, MIN_COLS);
+    const g = makeGrid(width);
+    rows.forEach((r, y) => r.forEach((v, x) => { g[y][x] = v; }));
+    return { grid: g, cols: width, unknown, extraRows: Math.max(0, lines.length - ROWS), shortRows: Math.max(0, ROWS - lines.length) };
+  }
+
+  function loadCsv(text, label) {
+    let result;
+    try { result = parseCsv(text); } catch (e) { toast(e.message); return; }
+    pushUndo();
+    cols = result.cols; grid = result.grid; $("width").value = cols;
+    changed();
+    const notes = [];
+    if (result.unknown) notes.push(`知らない値${result.unknown}個を空白にしました`);
+    if (result.shortRows) notes.push(`足りない${result.shortRows}行を空白で補いました`);
+    if (result.extraRows) notes.push(`21行目以降は読み込みませんでした`);
+    toast(`${label}を読み込みました${notes.length ? "（" + notes.join("、") + "）" : ""}。元に戻すには Ctrl+Z`);
+  }
+
+  // ---- 編集 ---------------------------------------------------------------
+  function setCell(c, r, v) {
+    if (c < 0 || r < 0 || c >= cols || r >= ROWS) return;
+    const tile = TILES[v];
+    // 1つしか置けないものは、前の場所から消す
+    if (tile && tile.unique) {
+      for (let y = 0; y < ROWS; y++) for (let x = 0; x < cols; x++) if (grid[y][x] === v) grid[y][x] = T.BLANK;
+    }
+    grid[r][c] = v;
+  }
+
+  function line(a, b, v) {
+    // ドラッグが速くてもマスが飛ばないように線で埋める
+    let x0 = a.c, y0 = a.r; const x1 = b.c, y1 = b.r;
+    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) {
+      setCell(x0, y0, v);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+  }
+
+  function fillRect(a, b, v) {
+    const tile = TILES[v];
+    if (tile && tile.unique) { setCell(b.c, b.r, v); return; }
+    const [x0, x1] = [Math.min(a.c, b.c), Math.max(a.c, b.c)];
+    const [y0, y1] = [Math.min(a.r, b.r), Math.max(a.r, b.r)];
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) grid[y][x] = v;
+  }
+
+  function floodFill(c, r, v) {
+    const target = grid[r][c];
+    if (target === v) return;
+    const tile = TILES[v];
+    if (tile && tile.unique) { setCell(c, r, v); return; }
+    const stack = [[c, r]];
+    while (stack.length) {
+      const [x, y] = stack.pop();
+      if (x < 0 || y < 0 || x >= cols || y >= ROWS || grid[y][x] !== target) continue;
+      grid[y][x] = v;
+      stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    }
+  }
+
+  function resize(newCols) {
+    newCols = Math.max(MIN_COLS, Math.min(MAX_COLS, Math.round(newCols)));
+    if (newCols === cols) return;
+    pushUndo();
+    const hadRightWall = grid.every((row) => row[cols - 1] === T.BLOCK);
+    const g = makeGrid(newCols);
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < Math.min(cols, newCols); x++) g[y][x] = grid[y][x];
+    // 広げた分は天井と地面をつなげておく
+    for (let x = cols; x < newCols; x++) { g[0][x] = T.BLOCK; g[ROWS - 1][x] = T.BLOCK; }
+    // 右端の壁は新しい右端へ移す
+    if (hadRightWall) {
+      if (newCols > cols) for (let y = 1; y < ROWS - 1; y++) g[y][cols - 1] = T.BLANK;
+      for (let y = 0; y < ROWS; y++) g[y][newCols - 1] = T.BLOCK;
+    }
+    cols = newCols; grid = g;
+    changed();
+  }
+
+  // ---- 敵の移動範囲（Enemy::IsEdgeAhead と同じく、足元にブロックがある間だけ歩く） ----
+  function patrolRange(c, r) {
+    const below = r + 1;
+    if (below >= ROWS || grid[below][c] !== T.BLOCK) return null; // 足元に床がない
+    const walkable = (x) => x >= 0 && x < cols && grid[r][x] !== T.BLOCK && grid[below][x] === T.BLOCK;
+    let left = c, right = c;
+    while (walkable(left - 1)) left--;
+    while (walkable(right + 1)) right++;
+    return { left, right };
+  }
+
+  // ---- チェック -----------------------------------------------------------
+  function find(v) {
+    const out = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < cols; x++) if (grid[y][x] === v) out.push({ c: x, r: y });
+    return out;
+  }
+
+  function validate() {
+    const items = [];
+    const add = (level, text) => items.push({ level, text });
+    const starts = find(T.START), goals = find(T.GOAL), checkpoints = find(T.CHECKPOINT);
+
+    if (starts.length === 1) add("ok", `開始位置 (${starts[0].c}, ${starts[0].r})`);
+    else if (!starts.length) add("warn", "開始位置がありません。ゲームでは左から3列目の地面から始まります。");
+    else add("err", `開始位置が${starts.length}つあります。最後に見つかった1つだけが使われます。`);
+
+    if (goals.length === 1) add("ok", `ゴールの星 (${goals[0].c}, ${goals[0].r})`);
+    else if (!goals.length) add("warn", "ゴールの星がありません。ゲームでは右端から3列目に自動で置かれます。");
+    else add("err", `ゴールの星が${goals.length}つあります。最後に見つかった1つだけが使われます。`);
+
+    if (checkpoints.length > 1) add("err", `中間ポイントが${checkpoints.length}つあります。1つにしてください。`);
+    else if (checkpoints.length === 1) {
+      const cp = checkpoints[0];
+      const nearEnemy = find(T.GROUND).some((e) => { const p = patrolRange(e.c, e.r); return p && e.r === cp.r && cp.c >= p.left && cp.c <= p.right; });
+      if (nearEnemy) add("warn", "中間ポイントが地上の敵の移動範囲に入っています。復活直後にぶつかりやすくなります。");
+      else add("ok", `中間ポイント (${cp.c}, ${cp.r})`);
+    }
+
+    const leftWall = grid.slice(CAMERA_TOP_ROW).every((row) => row[0] === T.BLOCK);
+    const rightWall = grid.slice(CAMERA_TOP_ROW).every((row) => row[cols - 1] === T.BLOCK);
+    if (!leftWall || !rightWall) add("warn", `${!leftWall && !rightWall ? "左右" : !leftWall ? "左" : "右"}の端に壁が途切れている所があります。ステージの外に出られてしまいます。`);
+
+    const floating = find(T.GROUND).filter((e) => !patrolRange(e.c, e.r));
+    if (floating.length) add("warn", `足元に床がない地上の敵が${floating.length}体います（${floating.map((e) => `(${e.c}, ${e.r})`).join(" ")}）。落ちて消えます。`);
+
+    const hidden = [];
+    for (let y = 1; y < CAMERA_TOP_ROW; y++) for (let x = 0; x < cols; x++) if (grid[y][x] >= T.COIN) hidden.push({ c: x, r: y });
+    if (hidden.length) add("warn", `画面に映らない高さ（${CAMERA_TOP_ROW - 1}行目より上）に置いたものが${hidden.length}個あります。`);
+
+    const midAir = [...starts, ...checkpoints].filter((p) => p.r + 1 >= ROWS || grid[p.r + 1][p.c] !== T.BLOCK);
+    if (midAir.length) add("warn", "開始位置・中間ポイントの真下にブロックがありません。出てすぐに落ちることがあります。");
+
+    if (!items.some((i) => i.level !== "ok")) add("ok", "問題は見つかりませんでした。");
+    return items;
+  }
+
+  function renderChecks() {
+    const coins = find(T.COIN).length;
+    const enemies = find(T.GROUND).length + find(T.FLYING).length + find(T.INVINCIBLE).length;
+    $("sumCoins").textContent = coins;
+    $("sumEnemies").textContent = enemies;
+    $("sumWidth").textContent = cols;
+    const label = { ok: "OK", warn: "注意", err: "エラー" };
+    const list = $("checks");
+    list.replaceChildren(...validate().map((i) => {
+      const li = document.createElement("li");
+      const chip = document.createElement("span");
+      chip.className = `chip ${i.level}`;
+      chip.textContent = label[i.level];
+      const text = document.createElement("span");
+      text.textContent = i.text;
+      li.append(chip, text);
+      return li;
+    }));
+  }
+
+  // ---- 描画 ---------------------------------------------------------------
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function drawTile(g, v, x, y, s) {
+    const cx = x + s / 2, cy = y + s / 2;
+    switch (v) {
+      case T.BLOCK: {
+        g.fillStyle = "#b8662f"; g.fillRect(x, y, s, s);
+        g.strokeStyle = "#7a3d17"; g.lineWidth = Math.max(1, s / 14);
+        g.beginPath();
+        g.moveTo(x, y + s / 2); g.lineTo(x + s, y + s / 2);
+        g.moveTo(x + s / 2, y); g.lineTo(x + s / 2, y + s / 2);
+        g.moveTo(x + s / 4, y + s / 2); g.lineTo(x + s / 4, y + s);
+        g.moveTo(x + (s * 3) / 4, y + s / 2); g.lineTo(x + (s * 3) / 4, y + s);
+        g.stroke();
+        g.strokeStyle = "#5c2c0e"; g.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+        break;
+      }
+      case T.COIN: {
+        g.fillStyle = "#f2b01e"; g.beginPath(); g.ellipse(cx, cy, s * 0.26, s * 0.34, 0, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = "#a86d00"; g.lineWidth = Math.max(1, s / 14); g.stroke();
+        g.fillStyle = "#ffe9a3"; g.fillRect(cx - s * 0.04, cy - s * 0.2, s * 0.08, s * 0.4);
+        break;
+      }
+      case T.START: {
+        g.fillStyle = "#1c7ed6"; roundRect(g, x + s * 0.2, y + s * 0.15, s * 0.6, s * 0.75, s * 0.18); g.fill();
+        g.fillStyle = "#ffffff"; g.beginPath(); g.arc(cx + s * 0.1, y + s * 0.4, s * 0.09, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#0b3d75"; g.beginPath(); g.arc(cx + s * 0.13, y + s * 0.4, s * 0.045, 0, Math.PI * 2); g.fill();
+        break;
+      }
+      case T.GROUND:
+      case T.FLYING:
+      case T.INVINCIBLE: {
+        const body = v === T.INVINCIBLE ? "#7b8794" : "#8a3f9e";
+        if (v === T.FLYING) {
+          g.fillStyle = "#ffffff"; g.strokeStyle = "#5f6b7a"; g.lineWidth = 1;
+          g.beginPath(); g.ellipse(x + s * 0.18, cy - s * 0.05, s * 0.16, s * 0.1, -0.5, 0, Math.PI * 2); g.fill(); g.stroke();
+          g.beginPath(); g.ellipse(x + s * 0.82, cy - s * 0.05, s * 0.16, s * 0.1, 0.5, 0, Math.PI * 2); g.fill(); g.stroke();
+        }
+        g.fillStyle = body;
+        g.beginPath(); g.moveTo(x + s * 0.18, y + s * 0.85); g.quadraticCurveTo(x + s * 0.12, y + s * 0.15, cx, y + s * 0.15);
+        g.quadraticCurveTo(x + s * 0.88, y + s * 0.15, x + s * 0.82, y + s * 0.85); g.closePath(); g.fill();
+        g.fillStyle = "#ffffff";
+        g.fillRect(cx - s * 0.17, cy - s * 0.08, s * 0.1, s * 0.16); g.fillRect(cx + s * 0.07, cy - s * 0.08, s * 0.1, s * 0.16);
+        if (v === T.INVINCIBLE) {
+          g.strokeStyle = "#e9ecef"; g.lineWidth = Math.max(1.5, s / 10);
+          g.beginPath(); g.arc(cx, cy + s * 0.05, s * 0.42, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+        }
+        break;
+      }
+      case T.GOAL: {
+        g.fillStyle = "#ffd43b"; g.strokeStyle = "#e08e00"; g.lineWidth = Math.max(1, s / 16);
+        g.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 === 0 ? s * 0.44 : s * 0.19;
+          g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr + s * 0.03);
+        }
+        g.closePath(); g.fill(); g.stroke();
+        break;
+      }
+      case T.CHECKPOINT: {
+        g.fillStyle = "#dee2e6"; g.fillRect(x + s * 0.28, y + s * 0.08, s * 0.08, s * 0.92);
+        g.fillStyle = "#f03e3e"; g.beginPath(); g.moveTo(x + s * 0.36, y + s * 0.1); g.lineTo(x + s * 0.85, y + s * 0.28); g.lineTo(x + s * 0.36, y + s * 0.46); g.closePath(); g.fill();
+        break;
+      }
+      default: break;
+    }
+  }
+
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  function draw() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cols * cell, h = ROWS * cell + RULER;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const fg = css("--fg"), muted = css("--muted"), panel = css("--panel");
+    ctx.fillStyle = panel; ctx.fillRect(0, 0, w, RULER);
+    ctx.fillStyle = css("--sky"); ctx.fillRect(0, RULER, w, ROWS * cell);
+
+    // 列番号
+    ctx.font = `10px ${css("--font-mono")}`; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+    for (let x = 0; x < cols; x += 5) { ctx.fillStyle = x % 10 === 0 ? fg : muted; ctx.fillText(String(x), x * cell + cell / 2, RULER / 2); }
+
+    ctx.save(); ctx.translate(0, RULER);
+
+    // カメラに映らない範囲
+    if ($("showCamera").checked) {
+      ctx.fillStyle = css("--sky-off"); ctx.fillRect(0, 0, w, CAMERA_TOP_ROW * cell);
+    }
+
+    // 飛ぶ敵の上下の範囲
+    if ($("showPatrol").checked) {
+      for (const e of find(T.FLYING)) {
+        ctx.fillStyle = "rgba(138, 63, 158, 0.18)";
+        ctx.fillRect(e.c * cell + cell * 0.1, (e.r - FLY_AMPLITUDE) * cell, cell * 0.8, (1 + FLY_AMPLITUDE * 2) * cell);
+      }
+    }
+
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < cols; x++) {
+      const v = grid[y][x];
+      if (v !== T.BLANK) drawTile(ctx, v, x * cell, y * cell, cell);
+    }
+
+    // 地上の敵が歩き回る範囲
+    if ($("showPatrol").checked) {
+      ctx.strokeStyle = "#8a3f9e"; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      for (const e of find(T.GROUND)) {
+        const p = patrolRange(e.c, e.r);
+        if (!p) continue;
+        const yy = e.r * cell + cell - 3;
+        ctx.beginPath(); ctx.moveTo(p.left * cell + 3, yy); ctx.lineTo((p.right + 1) * cell - 3, yy); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    if ($("showGrid").checked) {
+      for (let x = 0; x <= cols; x++) {
+        ctx.strokeStyle = x % 10 === 0 ? css("--grid-strong") : css("--grid"); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x * cell + 0.5, 0); ctx.lineTo(x * cell + 0.5, ROWS * cell); ctx.stroke();
+      }
+      for (let y = 0; y <= ROWS; y++) {
+        ctx.strokeStyle = css("--grid"); ctx.beginPath(); ctx.moveTo(0, y * cell + 0.5); ctx.lineTo(w, y * cell + 0.5); ctx.stroke();
+      }
+    }
+
+    if ($("showCamera").checked) {
+      ctx.strokeStyle = css("--accent"); ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(0, CAMERA_TOP_ROW * cell); ctx.lineTo(w, CAMERA_TOP_ROW * cell); ctx.stroke(); ctx.setLineDash([]);
+      ctx.font = `12px ${css("--font-body")}`; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+      ctx.fillStyle = "#ffffff"; ctx.fillText("ここより上はカメラに映りません", 8 + (document.getElementById("mapScroll").scrollLeft), CAMERA_TOP_ROW * cell - 6);
+    }
+
+    // 四角形ツールのプレビュー・カーソル
+    if (drag && tool === "rect") {
+      const x0 = Math.min(drag.start.c, drag.last.c), x1 = Math.max(drag.start.c, drag.last.c);
+      const y0 = Math.min(drag.start.r, drag.last.r), y1 = Math.max(drag.start.r, drag.last.r);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; ctx.fillRect(x0 * cell, y0 * cell, (x1 - x0 + 1) * cell, (y1 - y0 + 1) * cell);
+      ctx.strokeStyle = css("--accent"); ctx.lineWidth = 2; ctx.strokeRect(x0 * cell + 1, y0 * cell + 1, (x1 - x0 + 1) * cell - 2, (y1 - y0 + 1) * cell - 2);
+    } else if (hover) {
+      ctx.globalAlpha = 0.5;
+      if (tool !== "eraser" && selectedTile !== T.BLANK) drawTile(ctx, selectedTile, hover.c * cell, hover.r * cell, cell);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = css("--accent"); ctx.lineWidth = 2; ctx.strokeRect(hover.c * cell + 1, hover.r * cell + 1, cell - 2, cell - 2);
+    }
+    ctx.restore();
+  }
+
+  // ---- 入力 ---------------------------------------------------------------
+  function cellAt(ev) {
+    const rect = canvas.getBoundingClientRect();
+    const c = Math.floor((ev.clientX - rect.left) / cell);
+    const r = Math.floor((ev.clientY - rect.top - RULER) / cell);
+    if (c < 0 || r < 0 || c >= cols || r >= ROWS) return null;
+    return { c, r };
+  }
+
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("pointerdown", (ev) => {
+    const p = cellAt(ev);
+    if (!p) return;
+    canvas.setPointerCapture(ev.pointerId);
+    const erase = ev.button === 2 || tool === "eraser";
+    const value = erase ? T.BLANK : selectedTile;
+    pushUndo();
+    drag = { start: p, last: p, value };
+    if (tool === "fill" && !erase) { floodFill(p.c, p.r, value); drag = null; changed(); return; }
+    if (tool === "rect") { draw(); return; }
+    setCell(p.c, p.r, value);
+    changed();
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    const p = cellAt(ev);
+    hover = p;
+    updateStatus(p);
+    if (drag && p) {
+      if (tool === "rect") { drag.last = p; draw(); return; }
+      line(drag.last, p, drag.value);
+      drag.last = p;
+      changed();
+      return;
+    }
+    draw();
+  });
+  canvas.addEventListener("pointerup", (ev) => {
+    if (drag && tool === "rect") {
+      const p = cellAt(ev) || drag.last;
+      fillRect(drag.start, p, drag.value);
+      changed();
+    }
+    drag = null;
+  });
+  canvas.addEventListener("pointerleave", () => { hover = null; updateStatus(null); draw(); });
+  $("mapScroll").addEventListener("scroll", () => draw());
+
+  function updateStatus(p) {
+    if (!p) { $("stPos").textContent = "-"; $("stHeight").textContent = "-"; $("stTile").textContent = "-"; return; }
+    $("stPos").textContent = `列 ${p.c}, 行 ${p.r}（ゲーム座標 x=${p.c}, y=${ROWS - 1 - p.r}）`;
+    let ground = -1;
+    for (let y = p.r + 1; y < ROWS; y++) if (grid[y][p.c] === T.BLOCK) { ground = y; break; }
+    $("stHeight").textContent = ground < 0 ? "下に床なし（穴）" : `${ground - p.r - 1} マス`;
+    $("stTile").textContent = TILES[grid[p.r][p.c]].name;
+  }
+
+  // ---- パレット・ツール ---------------------------------------------------
+  function paintPaletteIcons() {
+    const dpr = window.devicePixelRatio || 1;
+    for (const c of $("palette").querySelectorAll("canvas")) {
+      c.width = 30 * dpr; c.height = 30 * dpr;
+      const g = c.getContext("2d"); g.scale(dpr, dpr);
+      g.fillStyle = css("--sky"); g.fillRect(0, 0, 30, 30);
+      drawTile(g, Number(c.dataset.tile), 1, 1, 28);
+    }
+  }
+  function buildPalette() {
+    const pal = $("palette");
+    for (const t of TILES) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tile-btn"; b.dataset.tile = t.id;
+      const c = document.createElement("canvas");
+      c.dataset.tile = t.id;
+      const name = document.createElement("span"); name.textContent = t.name;
+      const key = document.createElement("span"); key.className = "key"; key.textContent = String(t.id);
+      b.append(c, name, key);
+      b.addEventListener("click", () => selectTile(t.id));
+      pal.append(b);
+    }
+    paintPaletteIcons();
+  }
+  function selectTile(id) {
+    selectedTile = id;
+    if (tool === "eraser") selectTool("pen");
+    for (const b of $("palette").children) b.setAttribute("aria-pressed", String(Number(b.dataset.tile) === id));
+    draw();
+  }
+  function selectTool(name) {
+    tool = name;
+    for (const b of $("tools").children) b.setAttribute("aria-pressed", String(b.dataset.tool === name));
+  }
+  $("tools").addEventListener("click", (e) => { const b = e.target.closest("[data-tool]"); if (b) selectTool(b.dataset.tool); });
+
+  document.addEventListener("keydown", (e) => {
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^[0-8]$/.test(e.key)) { selectTile(Number(e.key)); return; }
+    const map = { b: "pen", e: "eraser", r: "rect", g: "fill" };
+    if (map[e.key.toLowerCase()]) selectTool(map[e.key.toLowerCase()]);
+  });
+
+  // ---- 保存・読み込み -----------------------------------------------------
+  function toast(text) {
+    const t = $("toast");
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 3500);
+  }
+
+  async function copy(text, done) {
+    try { await navigator.clipboard.writeText(text); toast(done); }
+    catch { const out = $("csvOut"); out.focus(); out.select(); toast("コピーできませんでした。選択したテキストを Ctrl+C でコピーしてください"); }
+  }
+
+  $("copyCsv").addEventListener("click", () => copy(toCsv(), "CSVをコピーしました"));
+  $("copySnippet").addEventListener("click", () => copy($("snippet").textContent, "コピーしました"));
+
+  // 埋め込み表示（iframe）の中ではファイル保存が使えないので案内に切り替える
+  const embedded = window.self !== window.top;
+  if (embedded) { $("downloadCsv").hidden = true; $("downloadNote").hidden = false; }
+  $("downloadCsv").addEventListener("click", () => {
+    const blob = new Blob([toCsv()], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = $("fileName").value.trim() || "stage.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  function readFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { loadCsv(String(reader.result), file.name); $("fileName").value = file.name; updateSnippet(); };
+    reader.readAsText(file);
+  }
+  $("openFile").addEventListener("change", (e) => { readFile(e.target.files[0]); e.target.value = ""; });
+  const scroll = $("mapScroll");
+  scroll.addEventListener("dragover", (e) => { e.preventDefault(); scroll.classList.add("dragover"); });
+  scroll.addEventListener("dragleave", () => scroll.classList.remove("dragover"));
+  scroll.addEventListener("drop", (e) => { e.preventDefault(); scroll.classList.remove("dragover"); readFile(e.dataTransfer.files[0]); });
+  $("loadText").addEventListener("click", () => loadCsv($("csvIn").value, "貼り付けたCSV"));
+
+  $("preset").addEventListener("change", (e) => {
+    const v = e.target.value;
+    e.target.value = "";
+    if (v === "new") { pushUndo(); cols = 60; grid = newStage(cols); $("width").value = cols; changed(); toast("新しいステージを作りました。元に戻すには Ctrl+Z"); }
+    else if (PRESETS[v]) loadCsv(PRESETS[v], v === "stage1" ? "ステージ1" : "ステージ2");
+  });
+  $("width").addEventListener("change", (e) => { resize(Number(e.target.value)); e.target.value = cols; });
+  $("undo").addEventListener("click", undo);
+  $("redo").addEventListener("click", redo);
+  for (const id of ["showCamera", "showPatrol", "showGrid"]) $(id).addEventListener("change", () => { draw(); saveDraft(); });
+  $("zoom").addEventListener("input", (e) => { cell = Number(e.target.value); draw(); });
+
+  function updateSnippet() {
+    const name = ($("fileName").value.trim() || "stage3.csv").replace(/"/g, "");
+    const time = Math.max(10, Math.min(999, Number($("timeLimit").value) || 150));
+    $("snippet").textContent = `{"Resources/${name}", ${time}},`;
+  }
+  $("fileName").addEventListener("input", () => { updateSnippet(); saveDraft(); });
+  $("timeLimit").addEventListener("input", () => { updateSnippet(); saveDraft(); });
+
+  // ---- 作業中のステージをこのブラウザに残す -------------------------------
+  const DRAFT_KEY = "2d-action-stage-editor-draft";
+  function saveDraft() {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ csv: toCsv(), fileName: $("fileName").value, timeLimit: $("timeLimit").value })); } catch { /* 保存できない環境では何もしない */ }
+  }
+  function loadDraft() {
+    try {
+      const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+      if (!d || !d.csv) return false;
+      const r = parseCsv(d.csv);
+      cols = r.cols; grid = r.grid;
+      if (d.fileName) $("fileName").value = d.fileName;
+      if (d.timeLimit) $("timeLimit").value = d.timeLimit;
+      return true;
+    } catch { return false; }
+  }
+
+  function changed() {
+    $("csvOut").value = toCsv();
+    renderChecks();
+    draw();
+    saveDraft();
+  }
+
+  // ---- 開始 ---------------------------------------------------------------
+  buildPalette();
+  selectTile(T.BLOCK);
+  selectTool("pen");
+  if (!loadDraft()) { const r = parseCsv(PRESETS.stage2); cols = r.cols; grid = r.grid; $("fileName").value = "stage3.csv"; }
+  $("width").value = cols;
+  updateSnippet();
+  updateHistoryButtons();
+  changed();
+  // テーマが変わったら色を塗り直す
+  const repaint = () => { paintPaletteIcons(); draw(); };
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", repaint);
+  new MutationObserver(repaint).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>
+</body>
+</html>
