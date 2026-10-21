@@ -10,6 +10,7 @@ void GameScene::Initialize() {
 	modelBlock_ = Model::CreateFromOBJ("block", true);
 	modelSkydome_ = Model::CreateFromOBJ("skydome", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
+	modelGoalStar_ = Model::CreateFromOBJ("star", true);
 
 	camera_.Initialize();
 	debugCamera_ = new DebugCamera(1280, 720);
@@ -62,13 +63,15 @@ void GameScene::Initialize() {
 		enemies_.push_back(invincibleEnemy);
 	}
 
-	// ステージ右端のゴールポールと旗
-	goalPole_.Initialize();
-	goalPole_.translation_ = {47.0f, 3.0f, 0.0f};
-	goalPole_.scale_ = {0.15f, 3.0f, 0.15f};
-	goalFlag_.Initialize();
-	goalFlag_.translation_ = {46.45f, 5.25f, 0.0f};
-	goalFlag_.scale_ = {0.7f, 0.45f, 0.15f};
+	// ステージ右端のゴールの星（獲得するとゴール）
+	{
+		Vector3 goalPosition = mapChipField_->GetMapChipPositionByIndex(47, 18);
+		// 地面から少し浮かせる
+		goalPosition.y += 0.5f;
+
+		goalStar_ = new GoalStar();
+		goalStar_->Initialize(modelGoalStar_, &camera_, goalPosition);
+	}
 
 	deathParticles_ = nullptr;
 
@@ -107,10 +110,7 @@ void GameScene::Initialize() {
 
 	// カメラの初期状態を行列に反映
 	cameraController_->Update();
-	goalPole_.matWorld_ = calc::MakeAffineMatrix(goalPole_.scale_, goalPole_.rotation_, goalPole_.translation_);
-	goalPole_.TransferMatrix();
-	goalFlag_.matWorld_ = calc::MakeAffineMatrix(goalFlag_.scale_, goalFlag_.rotation_, goalFlag_.translation_);
-	goalFlag_.TransferMatrix();
+	goalStar_->Update();
 
 	fade_ = new Fade();
 	fade_->Initialize();
@@ -135,6 +135,7 @@ void GameScene::Update() {
 		for (Enemy* enemy : enemies_) {
 			enemy->Update();
 		}
+		goalStar_->Update();
 
 		if (!isDebugCameraActive_) {
 			cameraController_->Update();
@@ -155,6 +156,8 @@ void GameScene::Update() {
 		for (Enemy* enemy : enemies_) {
 			enemy->Update();
 		}
+		// 星の獲得演出を続ける
+		goalStar_->Update();
 		if (deathParticles_) {
 			deathParticles_->Update();
 		}
@@ -216,6 +219,9 @@ void GameScene::UpdatePlayPhase() {
 		enemy->Update();
 	}
 
+	// ゴールの星の更新
+	goalStar_->Update();
+
 	// カメラコントローラの更新＆カメラの更新
 	if (!isDebugCameraActive_) {
 		cameraController_->Update();
@@ -249,7 +255,9 @@ void GameScene::UpdatePlayPhase() {
 	// 全ての当たり判定
 	CheckAllCollisions();
 
+	// 星を獲得したらゴール
 	if (!player_->IsDead() && IsGoalReached()) {
+		goalStar_->Collect();
 		isCleared_ = true;
 		phase_ = Phase::kFadeOut;
 		fade_->Start(Fade::Status::FadeOut, kFadeDuration);
@@ -265,6 +273,9 @@ void GameScene::UpdateDeathPhase() {
 	for (Enemy* enemy : enemies_) {
 		enemy->Update();
 	}
+
+	// ゴールの星の更新
+	goalStar_->Update();
 
 	// デスパーティクルの更新
 	if (deathParticles_) {
@@ -322,8 +333,7 @@ void GameScene::Draw() {
 			modelBlock_->Draw(*worldTransformBlock, camera_);
 		}
 	}
-	//modelBlock_->Draw(goalPole_, camera_);
-	//modelBlock_->Draw(goalFlag_, camera_);
+	goalStar_->Draw();
 	Model::PostDraw();
 
 	if (fade_) {
@@ -425,10 +435,15 @@ GameScene::~GameScene() {
 	delete modelEnemy_;
 	delete modelInvincibleEnemy_;
 	delete modelDeathParticle_;
+	delete goalStar_;
+	delete modelGoalStar_;
 }
 
 bool GameScene::IsGoalReached() {
-	const Vector3 playerPosition = player_->GetWorldPosition();
+	if (goalStar_->IsCollected()) {
+		return false;
+	}
 
-	return playerPosition.x >= goalPole_.translation_.x - 0.6f;
+	// プレイヤーが星に触れたらゴール
+	return calc::IsCollision(player_->GetAABB(), goalStar_->GetAABB());
 }

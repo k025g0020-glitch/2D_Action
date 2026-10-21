@@ -3,6 +3,7 @@
 #include "DeathParticles.h"
 #include "Enemy.h"
 #include "Fade.h"
+#include "GoalStar.h"
 #include "KamataEngine.h"
 #include "MapChipField.h"
 #include "Player.h"
@@ -41,8 +42,6 @@ private:
 	bool finished_ = false;
 
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
-	KamataEngine::WorldTransform goalPole_;
-	KamataEngine::WorldTransform goalFlag_;
 	uint32_t textureHandle_ = 0;
 
 	KamataEngine::Model* model_ = nullptr;
@@ -51,6 +50,7 @@ private:
 	KamataEngine::Model* modelEnemy_ = nullptr;
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
+	KamataEngine::Model* modelGoalStar_ = nullptr;
 
 	KamataEngine::Camera camera_;
 
@@ -60,6 +60,7 @@ private:
 	Player* player_ = nullptr;
 	std::list<Enemy*> enemies_;
 	DeathParticles* deathParticles_ = nullptr;
+	GoalStar* goalStar_ = nullptr;
 	Fade* fade_ = nullptr;
 
 	bool isDebugCameraActive_ = false;
