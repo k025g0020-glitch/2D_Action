@@ -67,8 +67,8 @@ private:
 	    {0.4f, 20.0f, {0.24f, 0.23f, 0.33f, 1.0f}, 0.35f, 0.55f, 2.0f, 5.0f, 0.3f},
 	}};
 
-	// 霧の色（夜の街に沈むような、黒に近い濃紺）
-	static inline const KamataEngine::Vector3 kFogColor = {0.05f, 0.05f, 0.11f};
+	// 霧の色（夜の街にかかるスモッグのような、暗い灰色）
+	static inline const KamataEngine::Vector3 kFogColor = {0.22f, 0.22f, 0.23f};
 	// 霧の板を、その層のビルからどれだけ手前に置くか
 	static inline const float kFogOffsetZ = 10.0f;
 
