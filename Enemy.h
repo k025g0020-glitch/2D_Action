@@ -24,6 +24,8 @@ public:
 	// 手足を動かすための部品モデルを設定する（設定しない時は Initialize のモデルをそのまま描く）
 	// arm と leg は左右で同じモデルを使う
 	void SetPartModels(KamataEngine::Model* body, KamataEngine::Model* arm, KamataEngine::Model* leg);
+	// 飛ぶ敵（ドローン）の機体とプロペラのモデルを設定する。プロペラは4つとも同じモデルを使う
+	void SetDroneModels(KamataEngine::Model* body, KamataEngine::Model* rotor);
 
 	const KamataEngine::Vector3& GetTranslation() const { return worldTransform_.translation_; }
 	void SetTranslation(const KamataEngine::Vector3& translation) { worldTransform_.translation_ = translation; }
@@ -200,4 +202,20 @@ private:
 	// 手足の振り（前に振る向きが正）と、振りの周期
 	float limbSwing_ = 0.0f;
 	float walkPhase_ = 0.0f;
+
+	// ---- ドローン（飛ぶ敵）：partTransforms_ の 0 番を機体、1〜4 番をプロペラに使う ----
+	static inline const std::array<KamataEngine::Vector3, 4> kRotorPositions = {{
+	    {0.2f, 0.10f, 0.3f},
+	    {-0.2f, 0.10f, 0.3f},
+	    {0.2f, 0.10f, -0.3f},
+	    {-0.2f, 0.10f, -0.3f},
+	}};
+	// プロペラの回る速さ（ラジアン/フレーム）
+	static inline const float kRotorSpinSpeed = 0.7f;
+	// 進む向きに機首を少し下げる角度
+	static inline const float kDroneForwardTilt = 0.15f;
+
+	KamataEngine::Model* rotorModel_ = nullptr;
+	bool hasDroneModels_ = false;
+	float rotorAngle_ = 0.0f;
 };

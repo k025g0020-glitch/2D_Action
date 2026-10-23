@@ -103,12 +103,15 @@ private:
 
 	KamataEngine::Model* model_ = nullptr;
 	KamataEngine::Model* modelBlock_ = nullptr;
-	KamataEngine::Model* modelEnemy_ = nullptr;
 	// 地上の敵：黒いスーツの男（1つにまとめたモデルと、手足を動かすための部品）
 	KamataEngine::Model* modelSuitman_ = nullptr;
 	KamataEngine::Model* modelSuitmanBody_ = nullptr;
 	KamataEngine::Model* modelSuitmanArm_ = nullptr;
 	KamataEngine::Model* modelSuitmanLeg_ = nullptr;
+	// 飛ぶ敵：監視ドローン（1つにまとめたモデルと、機体・プロペラ）
+	KamataEngine::Model* modelDrone_ = nullptr;
+	KamataEngine::Model* modelDroneBody_ = nullptr;
+	KamataEngine::Model* modelDroneRotor_ = nullptr;
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
 	KamataEngine::Model* modelGoalStar_ = nullptr;

@@ -14,11 +14,13 @@ void GameScene::Initialize(GameSession* session) {
 
 	// プレイヤー：フードとバイザーの、街を駆けるランナー
 	model_ = Model::CreateFromOBJ("runner", true);
-	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 	modelSuitman_ = Model::CreateFromOBJ("suitman", true);
 	modelSuitmanBody_ = Model::CreateFromOBJ("suitman_body", true);
 	modelSuitmanArm_ = Model::CreateFromOBJ("suitman_arm", true);
 	modelSuitmanLeg_ = Model::CreateFromOBJ("suitman_leg", true);
+	modelDrone_ = Model::CreateFromOBJ("drone", true);
+	modelDroneBody_ = Model::CreateFromOBJ("drone_body", true);
+	modelDroneRotor_ = Model::CreateFromOBJ("drone_rotor", true);
 	modelInvincibleEnemy_ = Model::CreateFromOBJ("shieldEnemy", true);
 	// 足場：街の屋上らしいコンクリートと鉄骨のブロック
 	modelBlock_ = Model::CreateFromOBJ("cityblock", true);
@@ -132,8 +134,9 @@ void GameScene::SpawnObjectsFromMap() {
 					enemy->Initialize(modelSuitman_, &camera_, mapChipField_, position, Enemy::Type::kGround, modelSmoke_);
 					enemy->SetPartModels(modelSuitmanBody_, modelSuitmanArm_, modelSuitmanLeg_);
 				} else if (type == MapChipType::kFlyingEnemy) {
-					// ゴール側からスタート側へ飛ぶ敵
-					enemy->Initialize(modelEnemy_, &camera_, mapChipField_, position, Enemy::Type::kFlying, modelSmoke_);
+					// ゴール側からスタート側へ飛ぶ敵：監視ドローン
+					enemy->Initialize(modelDrone_, &camera_, mapChipField_, position, Enemy::Type::kFlying, modelSmoke_);
+					enemy->SetDroneModels(modelDroneBody_, modelDroneRotor_);
 				} else {
 					// 動かない無敵敵
 					enemy->Initialize(modelInvincibleEnemy_, &camera_, mapChipField_, position, Enemy::Type::kInvincible);
@@ -675,11 +678,13 @@ GameScene::~GameScene() {
 	if (fade_) {
 		delete fade_;
 	}
-	delete modelEnemy_;
 	delete modelSuitman_;
 	delete modelSuitmanBody_;
 	delete modelSuitmanArm_;
 	delete modelSuitmanLeg_;
+	delete modelDrone_;
+	delete modelDroneBody_;
+	delete modelDroneRotor_;
 	delete modelInvincibleEnemy_;
 	delete modelDeathParticle_;
 	delete goalStar_;

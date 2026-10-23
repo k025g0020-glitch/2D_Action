@@ -31,6 +31,12 @@ void Enemy::Initialize(Model* model, Camera* camera, MapChipField* mapChipField,
 	worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
 	lrDirection_ = LRDirection::kRight;
 
+	// 飛ぶ敵はスタート側（左）へ飛ぶので左を向く
+	if (type_ == Type::kFlying) {
+		worldTransform_.rotation_.y = std::numbers::pi_v<float> * 3.0f / 2.0f;
+		lrDirection_ = LRDirection::kLeft;
+	}
+
 	turnFirstRotationY_ = worldTransform_.rotation_.y;
 	turnTimer_ = 0.0f;
 	walkTimer_ = 0.0f;
@@ -179,13 +185,41 @@ void Enemy::SetPartModels(Model* body, Model* arm, Model* leg) {
 	UpdateWorldTransform();
 }
 
+void Enemy::SetDroneModels(Model* body, Model* rotor) {
+	assert(body && rotor);
+	bodyModel_ = body;
+	rotorModel_ = rotor;
+	hasDroneModels_ = true;
+
+	for (WorldTransform& part : partTransforms_) {
+		part.Initialize();
+	}
+	UpdateWorldTransform();
+}
+
 void Enemy::UpdatePartTransforms() {
-	if (!hasPartModels_) {
+	// 部品は本体の行列（向き・位置・踏まれた時のつぶれ）に付いていく
+	const Matrix4x4& parent = worldTransform_.matWorld_;
+
+	if (hasDroneModels_) {
+		// 機体は進む向きに機首を少し下げる（rotation.x がプラスで機首が下がる）
+		const Matrix4x4 bodyWorld = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {kDroneForwardTilt, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}), parent);
+		partTransforms_[0].matWorld_ = bodyWorld;
+		partTransforms_[0].TransferMatrix();
+		// プロペラは軸のまわりに回す（隣どうしで逆回転・向きをずらして同じに見えないように）
+		for (size_t i = 0; i < kRotorPositions.size(); ++i) {
+			const float direction = (i % 3 == 0) ? 1.0f : -1.0f;
+			const float angle = rotorAngle_ * direction + static_cast<float>(i) * 0.8f;
+			WorldTransform& rotor = partTransforms_[i + 1];
+			rotor.matWorld_ = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, angle, 0.0f}, kRotorPositions[i]), bodyWorld);
+			rotor.TransferMatrix();
+		}
 		return;
 	}
 
-	// 部品は本体の行列（向き・位置・踏まれた時のつぶれ）に付いていく
-	const Matrix4x4& parent = worldTransform_.matWorld_;
+	if (!hasPartModels_) {
+		return;
+	}
 	auto setPart = [&](Part part, float swing, const Vector3& pivot) {
 		WorldTransform& transform = partTransforms_[part];
 		// rotation.x がマイナスで前に振れる
@@ -274,6 +308,9 @@ void Enemy::UpdateFlying() {
 
 	// 上下運動に合わせて少し傾ける
 	worldTransform_.rotation_.z = std::sin(angle) * 0.15f;
+
+	// プロペラを回す
+	rotorAngle_ += kRotorSpinSpeed;
 
 	// 1フレームの移動量を速度へ設定
 	velocity_.x = -kFlyingMoveSpeed * kDeltaTime;
@@ -594,7 +631,12 @@ void Enemy::Defeat() {
 
 void Enemy::Draw() {
 	if (state_ != State::kGone) {
-		if (hasPartModels_) {
+		if (hasDroneModels_) {
+			bodyModel_->Draw(partTransforms_[0], *camera_);
+			for (size_t i = 0; i < kRotorPositions.size(); ++i) {
+				rotorModel_->Draw(partTransforms_[i + 1], *camera_);
+			}
+		} else if (hasPartModels_) {
 			bodyModel_->Draw(partTransforms_[kBody], *camera_);
 			armModel_->Draw(partTransforms_[kArmNear], *camera_);
 			armModel_->Draw(partTransforms_[kArmFar], *camera_);
