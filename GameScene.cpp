@@ -31,6 +31,7 @@ void GameScene::Initialize(GameSession* session) {
 	modelGoalStar_ = Model::CreateFromOBJ("star", true);
 	modelSmoke_ = Model::CreateFromOBJ("smoke", true);
 	modelCoin_ = Model::CreateFromOBJ("coin", true);
+	modelSpark_ = Model::CreateFromOBJ("spark", true);
 	modelCheckpoint_ = Model::CreateFromOBJ("checkpoint", true);
 	modelPlayerBody_ = Model::CreateFromOBJ("runner_body", true);
 	modelPlayerArm_ = Model::CreateFromOBJ("runner_arm", true);
@@ -38,7 +39,7 @@ void GameScene::Initialize(GameSession* session) {
 	modelPlayerScarf_ = Model::CreateFromOBJ("runner_scarf", true);
 
 	camera_.Initialize();
-	particles_.Initialize(modelSmoke_, modelGoalStar_, &camera_);
+	particles_.Initialize(modelSmoke_, modelSpark_, &camera_);
 	debugCamera_ = new DebugCamera(1280, 720);
 
 	mapChipField_ = new MapChipField;
@@ -698,6 +699,7 @@ GameScene::~GameScene() {
 	delete modelGoalStar_;
 	delete modelSmoke_;
 	delete modelCoin_;
+	delete modelSpark_;
 	delete modelCheckpoint_;
 	delete modelPlayerBody_;
 	delete modelPlayerArm_;

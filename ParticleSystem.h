@@ -7,7 +7,7 @@
 class ParticleSystem {
 public:
 	// sphereModel : 砂ぼこりなど丸い粒に使うモデル
-	// starModel   : キラキラに使う星のモデル
+	// starModel   : キラキラに使う光の粒のモデル（白。色は粒ごとに付ける）
 	void Initialize(KamataEngine::Model* sphereModel, KamataEngine::Model* starModel, KamataEngine::Camera* camera);
 	void Update();
 	void Draw();

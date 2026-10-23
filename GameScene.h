@@ -121,6 +121,8 @@ private:
 	KamataEngine::Model* modelGoalStar_ = nullptr;
 	KamataEngine::Model* modelSmoke_ = nullptr;
 	KamataEngine::Model* modelCoin_ = nullptr;
+	// キラキラのパーティクル用の白い光の粒（パーティクル側で色を付ける）
+	KamataEngine::Model* modelSpark_ = nullptr;
 	KamataEngine::Model* modelCheckpoint_ = nullptr;
 	// プレイヤーの手足を動かすための部品
 	KamataEngine::Model* modelPlayerBody_ = nullptr;
