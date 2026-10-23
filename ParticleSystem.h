@@ -29,6 +29,8 @@ public:
 	void EmitStompImpact(const KamataEngine::Vector3& position);
 	// 中間ポイント通過の紙吹雪
 	void EmitConfetti(const KamataEngine::Vector3& position);
+	// 光の柱の中を昇っていく光の粒（base は柱の根元、halfWidth は柱の幅の半分）
+	void EmitRisingLight(const KamataEngine::Vector3& base, float halfWidth);
 	// 星のまわりで小さく光る
 	void EmitTwinkle(const KamataEngine::Vector3& center, float radius);
 

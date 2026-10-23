@@ -29,6 +29,7 @@ void GameScene::Initialize(GameSession* session) {
 	modelBlock_ = Model::CreateFromOBJ("cityblock", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
 	modelGoalStar_ = Model::CreateFromOBJ("star", true);
+	modelBeam_ = Model::CreateFromOBJ("beam", true);
 	modelSmoke_ = Model::CreateFromOBJ("smoke", true);
 	modelCoin_ = Model::CreateFromOBJ("coin", true);
 	modelSpark_ = Model::CreateFromOBJ("spark", true);
@@ -156,6 +157,7 @@ void GameScene::SpawnObjectsFromMap() {
 				goalPosition.y += 0.3f;
 				goalStar_ = new GoalStar();
 				goalStar_->Initialize(modelGoalStar_, &camera_, goalPosition);
+				goalStar_->SetBeamModel(modelBeam_);
 				break;
 			}
 
@@ -176,6 +178,7 @@ void GameScene::SpawnObjectsFromMap() {
 		goalPosition.y += 0.3f;
 		goalStar_ = new GoalStar();
 		goalStar_->Initialize(modelGoalStar_, &camera_, goalPosition);
+		goalStar_->SetBeamModel(modelBeam_);
 	}
 
 	// 中間ポイントを通過済みならそこから再開する
@@ -342,8 +345,14 @@ void GameScene::UpdateStageObjects() {
 				particles_.EmitTwinkle(starCenter, 0.6f);
 				particles_.EmitTwinkle(starCenter, 0.6f);
 			}
-		} else if (effectFrame_ % kTwinkleInterval == 0) {
-			particles_.EmitTwinkle(starCenter, 0.5f);
+		} else {
+			if (effectFrame_ % kTwinkleInterval == 0) {
+				particles_.EmitTwinkle(starCenter, 0.5f);
+			}
+			// 光の柱の中を光の粒が昇っていく
+			if (effectFrame_ % kRisingLightInterval == 0) {
+				particles_.EmitRisingLight(goalStar_->GetBasePosition(), goalStar_->GetBeamHalfWidth());
+			}
 		}
 	}
 
@@ -697,6 +706,7 @@ GameScene::~GameScene() {
 	delete modelDeathParticle_;
 	delete goalStar_;
 	delete modelGoalStar_;
+	delete modelBeam_;
 	delete modelSmoke_;
 	delete modelCoin_;
 	delete modelSpark_;

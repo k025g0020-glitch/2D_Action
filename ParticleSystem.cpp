@@ -282,6 +282,21 @@ void ParticleSystem::EmitConfetti(const Vector3& position) {
 	}
 }
 
+void ParticleSystem::EmitRisingLight(const Vector3& base, float halfWidth) {
+	EmitDesc desc;
+	desc.model = starModel_;
+	desc.position = {base.x, base.y + 0.3f, base.z - 0.1f};
+	desc.positionRandom = {halfWidth, 0.2f, 0.0f};
+	desc.velocity = {0.0f, 0.09f, 0.0f};
+	desc.velocityRandom = {0.0f, 0.03f, 0.0f};
+	desc.color = {1.0f, 0.92f, 0.6f, 1.0f};
+	desc.startScale = 0.14f;
+	desc.endScale = 0.0f;
+	desc.spin = 0.08f;
+	desc.life = 1.6f;
+	Emit(desc);
+}
+
 void ParticleSystem::EmitTwinkle(const Vector3& center, float radius) {
 	EmitDesc desc;
 	desc.model = starModel_;

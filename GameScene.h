@@ -119,6 +119,8 @@ private:
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
 	KamataEngine::Model* modelGoalStar_ = nullptr;
+	// ゴールの星から空へ伸びる光の柱
+	KamataEngine::Model* modelBeam_ = nullptr;
 	KamataEngine::Model* modelSmoke_ = nullptr;
 	KamataEngine::Model* modelCoin_ = nullptr;
 	// キラキラのパーティクル用の白い光の粒（パーティクル側で色を付ける）
@@ -152,6 +154,8 @@ private:
 	static inline const uint32_t kRunDustInterval = 4;
 	// ゴールの星のまわりで光る間隔（フレーム）
 	static inline const uint32_t kTwinkleInterval = 10;
+	// 光の柱の中を光の粒が昇っていく間隔（フレーム）
+	static inline const uint32_t kRisingLightInterval = 5;
 
 	BitmapText text_;
 	std::list<ScorePopup> popups_;
