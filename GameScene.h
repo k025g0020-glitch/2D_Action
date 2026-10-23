@@ -112,6 +112,10 @@ private:
 	KamataEngine::Model* modelDrone_ = nullptr;
 	KamataEngine::Model* modelDroneBody_ = nullptr;
 	KamataEngine::Model* modelDroneRotor_ = nullptr;
+	// 倒せない敵：装甲の警備ロボット（胴体・頭・警告灯）
+	KamataEngine::Model* modelRobotBody_ = nullptr;
+	KamataEngine::Model* modelRobotHead_ = nullptr;
+	KamataEngine::Model* modelRobotBeacon_ = nullptr;
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
 	KamataEngine::Model* modelGoalStar_ = nullptr;

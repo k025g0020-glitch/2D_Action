@@ -95,6 +95,8 @@ void Enemy::Update() {
 	// 無敵敵は初期位置に固定
 	if (type_ == Type::kInvincible) {
 		velocity_ = {};
+		// 頭を振って見張り、警告灯を回すための時間
+		robotTimer_ += 1.0f / 60.0f;
 		UpdateWorldTransform();
 		return;
 	}
@@ -197,9 +199,36 @@ void Enemy::SetDroneModels(Model* body, Model* rotor) {
 	UpdateWorldTransform();
 }
 
+void Enemy::SetRobotModels(Model* body, Model* head, Model* beacon) {
+	assert(body && head && beacon);
+	bodyModel_ = body;
+	headModel_ = head;
+	beaconModel_ = beacon;
+	hasRobotModels_ = true;
+
+	for (WorldTransform& part : partTransforms_) {
+		part.Initialize();
+	}
+	UpdateWorldTransform();
+}
+
 void Enemy::UpdatePartTransforms() {
 	// 部品は本体の行列（向き・位置・踏まれた時のつぶれ）に付いていく
 	const Matrix4x4& parent = worldTransform_.matWorld_;
+
+	if (hasRobotModels_) {
+		partTransforms_[0].matWorld_ = parent;
+		partTransforms_[0].TransferMatrix();
+		// 頭をゆっくり左右に振って見張る
+		const float headYaw = std::sin(robotTimer_ * kScanSpeed) * kScanAngle;
+		const Matrix4x4 headWorld = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, headYaw, 0.0f}, kRobotNeck), parent);
+		partTransforms_[1].matWorld_ = headWorld;
+		partTransforms_[1].TransferMatrix();
+		// 頭の上の警告灯を回す
+		partTransforms_[2].matWorld_ = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, robotTimer_ * kBeaconSpinSpeed, 0.0f}, kRobotBeacon), headWorld);
+		partTransforms_[2].TransferMatrix();
+		return;
+	}
 
 	if (hasDroneModels_) {
 		// 機体は進む向きに機首を少し下げる（rotation.x がプラスで機首が下がる）
@@ -631,7 +660,11 @@ void Enemy::Defeat() {
 
 void Enemy::Draw() {
 	if (state_ != State::kGone) {
-		if (hasDroneModels_) {
+		if (hasRobotModels_) {
+			bodyModel_->Draw(partTransforms_[0], *camera_);
+			headModel_->Draw(partTransforms_[1], *camera_);
+			beaconModel_->Draw(partTransforms_[2], *camera_);
+		} else if (hasDroneModels_) {
 			bodyModel_->Draw(partTransforms_[0], *camera_);
 			for (size_t i = 0; i < kRotorPositions.size(); ++i) {
 				rotorModel_->Draw(partTransforms_[i + 1], *camera_);

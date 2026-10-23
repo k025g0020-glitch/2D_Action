@@ -26,6 +26,8 @@ public:
 	void SetPartModels(KamataEngine::Model* body, KamataEngine::Model* arm, KamataEngine::Model* leg);
 	// 飛ぶ敵（ドローン）の機体とプロペラのモデルを設定する。プロペラは4つとも同じモデルを使う
 	void SetDroneModels(KamataEngine::Model* body, KamataEngine::Model* rotor);
+	// 倒せない敵（警備ロボット）の胴体・頭・警告灯のモデルを設定する
+	void SetRobotModels(KamataEngine::Model* body, KamataEngine::Model* head, KamataEngine::Model* beacon);
 
 	const KamataEngine::Vector3& GetTranslation() const { return worldTransform_.translation_; }
 	void SetTranslation(const KamataEngine::Vector3& translation) { worldTransform_.translation_ = translation; }
@@ -218,4 +220,18 @@ private:
 	KamataEngine::Model* rotorModel_ = nullptr;
 	bool hasDroneModels_ = false;
 	float rotorAngle_ = 0.0f;
+
+	// ---- 警備ロボット（倒せない敵）：partTransforms_ の 0 番を胴体、1 番を頭、2 番を警告灯に使う ----
+	// 首の位置と、首から見た警告灯の付け根の位置（robot_*.obj と合わせる）
+	static inline const KamataEngine::Vector3 kRobotNeck = {0.0f, 0.16f, 0.0f};
+	static inline const KamataEngine::Vector3 kRobotBeacon = {0.0f, 0.27f, 0.0f};
+	// 頭を左右に振って見張る角度と速さ、警告灯の回る速さ
+	static inline const float kScanAngle = 0.6f;
+	static inline const float kScanSpeed = 1.2f;
+	static inline const float kBeaconSpinSpeed = 6.0f;
+
+	KamataEngine::Model* headModel_ = nullptr;
+	KamataEngine::Model* beaconModel_ = nullptr;
+	bool hasRobotModels_ = false;
+	float robotTimer_ = 0.0f;
 };

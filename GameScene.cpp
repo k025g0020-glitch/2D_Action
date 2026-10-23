@@ -21,7 +21,10 @@ void GameScene::Initialize(GameSession* session) {
 	modelDrone_ = Model::CreateFromOBJ("drone", true);
 	modelDroneBody_ = Model::CreateFromOBJ("drone_body", true);
 	modelDroneRotor_ = Model::CreateFromOBJ("drone_rotor", true);
-	modelInvincibleEnemy_ = Model::CreateFromOBJ("shieldEnemy", true);
+	modelInvincibleEnemy_ = Model::CreateFromOBJ("robot", true);
+	modelRobotBody_ = Model::CreateFromOBJ("robot_body", true);
+	modelRobotHead_ = Model::CreateFromOBJ("robot_head", true);
+	modelRobotBeacon_ = Model::CreateFromOBJ("robot_beacon", true);
 	// 足場：街の屋上らしいコンクリートと鉄骨のブロック
 	modelBlock_ = Model::CreateFromOBJ("cityblock", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
@@ -138,8 +141,9 @@ void GameScene::SpawnObjectsFromMap() {
 					enemy->Initialize(modelDrone_, &camera_, mapChipField_, position, Enemy::Type::kFlying, modelSmoke_);
 					enemy->SetDroneModels(modelDroneBody_, modelDroneRotor_);
 				} else {
-					// 動かない無敵敵
+					// 動かない無敵敵：装甲の警備ロボット
 					enemy->Initialize(modelInvincibleEnemy_, &camera_, mapChipField_, position, Enemy::Type::kInvincible);
+					enemy->SetRobotModels(modelRobotBody_, modelRobotHead_, modelRobotBeacon_);
 				}
 				enemies_.push_back(enemy);
 				break;
@@ -686,6 +690,9 @@ GameScene::~GameScene() {
 	delete modelDroneBody_;
 	delete modelDroneRotor_;
 	delete modelInvincibleEnemy_;
+	delete modelRobotBody_;
+	delete modelRobotHead_;
+	delete modelRobotBeacon_;
 	delete modelDeathParticle_;
 	delete goalStar_;
 	delete modelGoalStar_;
