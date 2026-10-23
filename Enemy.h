@@ -2,6 +2,7 @@
 #include "KamataEngine.h"
 #include "CollisionMapInfo.h"
 #include "SmokeParticles.h"
+#include <array>
 #include <cassert>
 
 class MapChipField;
@@ -19,6 +20,10 @@ public:
 	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, MapChipField* mapChipField, const KamataEngine::Vector3& position, Type type = Type::kGround, KamataEngine::Model* smokeModel = nullptr);
 	void Update();
 	void Draw();
+
+	// 手足を動かすための部品モデルを設定する（設定しない時は Initialize のモデルをそのまま描く）
+	// arm と leg は左右で同じモデルを使う
+	void SetPartModels(KamataEngine::Model* body, KamataEngine::Model* arm, KamataEngine::Model* leg);
 
 	const KamataEngine::Vector3& GetTranslation() const { return worldTransform_.translation_; }
 	void SetTranslation(const KamataEngine::Vector3& translation) { worldTransform_.translation_ = translation; }
@@ -163,4 +168,36 @@ private:
 	static inline const float kWalkMotionAngleEnd = 30.0f;
 	static inline const float kWalkMotionTime = 60.0f;
 	float walkTimer_ = 0.0f;
+
+	// ---- 手足のアニメーション（部品モデルがある時） ----
+	// 部品（Near は画面の手前側、Far は奥側）
+	enum Part {
+		kBody,
+		kArmNear,
+		kArmFar,
+		kLegNear,
+		kLegFar,
+		kNumParts,
+	};
+	// 部品のワールド行列を計算する
+	void UpdatePartTransforms();
+
+	// 部品を付ける関節の位置（モデルの座標。suitman_*.obj と合わせる）
+	static inline const KamataEngine::Vector3 kShoulderNear = {0.18f, 0.17f, 0.0f};
+	static inline const KamataEngine::Vector3 kShoulderFar = {-0.18f, 0.17f, 0.0f};
+	static inline const KamataEngine::Vector3 kHipNear = {0.07f, -0.08f, 0.0f};
+	static inline const KamataEngine::Vector3 kHipFar = {-0.07f, -0.08f, 0.0f};
+	// 歩く時の手足の振れ幅（ラジアン）と、1ブロック進むごとに進む振りの角度
+	static inline const float kLegSwing = 0.6f;
+	static inline const float kArmSwing = 0.5f;
+	static inline const float kStrideRate = 3.2f;
+
+	std::array<KamataEngine::WorldTransform, kNumParts> partTransforms_;
+	KamataEngine::Model* bodyModel_ = nullptr;
+	KamataEngine::Model* armModel_ = nullptr;
+	KamataEngine::Model* legModel_ = nullptr;
+	bool hasPartModels_ = false;
+	// 手足の振り（前に振る向きが正）と、振りの周期
+	float limbSwing_ = 0.0f;
+	float walkPhase_ = 0.0f;
 };

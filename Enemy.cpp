@@ -148,13 +148,56 @@ void Enemy::Update() {
 
 	const float sinParam = std::sin(2.0f * std::numbers::pi_v<float> * walkTimer_);
 
-	const float walkRatio = (sinParam + 1.0f) / 2.0f;
+	if (hasPartModels_) {
+		// 人型のモデル：進んだ距離に合わせて、脚と反対側の腕を交互に振る（足が滑って見えないように）
+		walkPhase_ += std::abs(velocity_.x) * kStrideRate;
+		limbSwing_ = std::sin(walkPhase_);
+	} else {
+		// 1つのモデル：体全体を前後に揺らす
+		const float walkRatio = (sinParam + 1.0f) / 2.0f;
 
-	const float degree = -kWalkMotionAngleStart + (kWalkMotionAngleStart + kWalkMotionAngleEnd) * walkRatio;
+		const float degree = -kWalkMotionAngleStart + (kWalkMotionAngleStart + kWalkMotionAngleEnd) * walkRatio;
 
-	worldTransform_.rotation_.x = degree * (std::numbers::pi_v<float> / 180.0f);
+		worldTransform_.rotation_.x = degree * (std::numbers::pi_v<float> / 180.0f);
+	}
 
 	UpdateWorldTransform();
+}
+
+void Enemy::SetPartModels(Model* body, Model* arm, Model* leg) {
+	assert(body && arm && leg);
+	bodyModel_ = body;
+	armModel_ = arm;
+	legModel_ = leg;
+	hasPartModels_ = true;
+
+	for (WorldTransform& part : partTransforms_) {
+		part.Initialize();
+	}
+	// 体全体の揺れは使わない
+	worldTransform_.rotation_.x = 0.0f;
+	UpdateWorldTransform();
+}
+
+void Enemy::UpdatePartTransforms() {
+	if (!hasPartModels_) {
+		return;
+	}
+
+	// 部品は本体の行列（向き・位置・踏まれた時のつぶれ）に付いていく
+	const Matrix4x4& parent = worldTransform_.matWorld_;
+	auto setPart = [&](Part part, float swing, const Vector3& pivot) {
+		WorldTransform& transform = partTransforms_[part];
+		// rotation.x がマイナスで前に振れる
+		transform.matWorld_ = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {-swing, 0.0f, 0.0f}, pivot), parent);
+		transform.TransferMatrix();
+	};
+
+	setPart(kBody, 0.0f, {0.0f, 0.0f, 0.0f});
+	setPart(kLegNear, limbSwing_ * kLegSwing, kHipNear);
+	setPart(kLegFar, -limbSwing_ * kLegSwing, kHipFar);
+	setPart(kArmNear, -limbSwing_ * kArmSwing, kShoulderNear);
+	setPart(kArmFar, limbSwing_ * kArmSwing, kShoulderFar);
 }
 
 void Enemy::TurnAround() {
@@ -246,6 +289,8 @@ void Enemy::UpdateWorldTransform() {
 	worldTransform_.matWorld_ = calc::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 
 	worldTransform_.TransferMatrix();
+
+	UpdatePartTransforms();
 }
 
 Vector3 Enemy::CornerPosition(const Vector3& center, Corner corner) {
@@ -549,7 +594,15 @@ void Enemy::Defeat() {
 
 void Enemy::Draw() {
 	if (state_ != State::kGone) {
-		model_->Draw(worldTransform_, *camera_);
+		if (hasPartModels_) {
+			bodyModel_->Draw(partTransforms_[kBody], *camera_);
+			armModel_->Draw(partTransforms_[kArmNear], *camera_);
+			armModel_->Draw(partTransforms_[kArmFar], *camera_);
+			legModel_->Draw(partTransforms_[kLegNear], *camera_);
+			legModel_->Draw(partTransforms_[kLegFar], *camera_);
+		} else {
+			model_->Draw(worldTransform_, *camera_);
+		}
 	}
 
 	smoke_.Draw();
