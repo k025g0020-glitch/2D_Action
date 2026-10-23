@@ -23,6 +23,10 @@ void GameScene::Initialize(GameSession* session) {
 	modelSmoke_ = Model::CreateFromOBJ("smoke", true);
 	modelCoin_ = Model::CreateFromOBJ("coin", true);
 	modelCheckpoint_ = Model::CreateFromOBJ("checkpoint", true);
+	modelPlayerBody_ = Model::CreateFromOBJ("runner_body", true);
+	modelPlayerArm_ = Model::CreateFromOBJ("runner_arm", true);
+	modelPlayerLeg_ = Model::CreateFromOBJ("runner_leg", true);
+	modelPlayerScarf_ = Model::CreateFromOBJ("runner_scarf", true);
 
 	camera_.Initialize();
 	particles_.Initialize(modelSmoke_, modelGoalStar_, &camera_);
@@ -169,6 +173,7 @@ void GameScene::SpawnObjectsFromMap() {
 	player_ = new Player();
 	player_->Initialize(model_, &camera_, mapChipField_, playerInitialPosition);
 	player_->SetMapChipField(mapChipField_);
+	player_->SetPartModels(modelPlayerBody_, modelPlayerArm_, modelPlayerLeg_, modelPlayerScarf_);
 
 	// ミスした後の復活では、近くの敵にすぐ当たらないように少しの間無敵にする
 	if (session_->isRespawn) {
@@ -673,6 +678,10 @@ GameScene::~GameScene() {
 	delete modelSmoke_;
 	delete modelCoin_;
 	delete modelCheckpoint_;
+	delete modelPlayerBody_;
+	delete modelPlayerArm_;
+	delete modelPlayerLeg_;
+	delete modelPlayerScarf_;
 }
 
 bool GameScene::IsGoalReached() {

@@ -94,6 +94,10 @@ void Player::Update() {
 	worldTransform_.matWorld_ = calc::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 	worldTransform_.TransferMatrix();
 
+	// 手足のアニメーション
+	UpdateAnimation();
+	UpdatePartTransforms();
+
 	MapChipField::IndexSet playerIndex = mapChipField_->GetMapChipIndexByPosition(worldTransform_.translation_);
 }
 
@@ -660,5 +664,152 @@ void Player::Draw() {
 	if (IsInvincible() && static_cast<int>(invincibleTimer_ * kBlinkRate) % 2 == 0) {
 		return;
 	}
-	model_->Draw(worldTransform_, *camera_);
+
+	if (!hasPartModels_) {
+		model_->Draw(worldTransform_, *camera_);
+		return;
+	}
+
+	bodyModel_->Draw(partTransforms_[kBody], *camera_);
+	armModel_->Draw(partTransforms_[kArmNear], *camera_);
+	armModel_->Draw(partTransforms_[kArmFar], *camera_);
+	legModel_->Draw(partTransforms_[kLegNear], *camera_);
+	legModel_->Draw(partTransforms_[kLegFar], *camera_);
+	scarfModel_->Draw(partTransforms_[kScarf], *camera_);
+}
+
+void Player::SetPartModels(Model* body, Model* arm, Model* leg, Model* scarf) {
+	assert(body && arm && leg && scarf);
+	bodyModel_ = body;
+	armModel_ = arm;
+	legModel_ = leg;
+	scarfModel_ = scarf;
+	hasPartModels_ = true;
+
+	for (WorldTransform& part : partTransforms_) {
+		part.Initialize();
+	}
+	UpdatePartTransforms();
+}
+
+void Player::UpdateAnimation() {
+	constexpr float kDeltaTime = 1.0f / 60.0f;
+	animationTime_ += kDeltaTime;
+
+	const float speed = std::abs(velocity_.x);
+	const float speedRatio = std::clamp(speed / kLimitDashSpeed, 0.0f, 1.0f);
+	// マフラーが細かくなびく
+	const float flutter = std::sin(animationTime_ * 18.0f) * 0.12f;
+
+	// 目標のポーズ（手足は前に振る向きが正）
+	float armNear = 0.0f, armFar = 0.0f, legNear = 0.0f, legFar = 0.0f;
+	float lean = 0.0f, bob = 0.0f, scarf = -1.1f;
+	float blend = kPoseBlendRate;
+
+	if (isFlipping_) {
+		// 3段目の宙返り：体を丸める
+		armNear = armFar = 1.2f;
+		legNear = legFar = 1.6f;
+		scarf = 0.3f + flutter;
+	} else if (onGround_) {
+		if (isSkidding_) {
+			// ブレーキ：のけぞって前の足で踏ん張る
+			lean = -0.25f;
+			legNear = 0.7f;
+			legFar = -0.2f;
+			armNear = -0.8f;
+			armFar = 0.9f;
+			scarf = 0.2f + flutter;
+		} else if (speed > 0.01f) {
+			// 走り：脚と、反対側の腕を交互に振る。速いほど大きく振り、前に傾く
+			runPhase_ += speed * kRunCycleRate;
+			const float swing = std::sin(runPhase_) * std::lerp(kRunSwingMin, kRunSwingMax, speedRatio);
+			legNear = swing;
+			legFar = -swing;
+			armNear = -swing * 0.9f;
+			armFar = swing * 0.9f;
+			lean = kRunLeanMax * speedRatio;
+			bob = std::abs(std::cos(runPhase_)) * 0.05f * speedRatio;
+			scarf = -1.1f + 1.3f * speedRatio + flutter * speedRatio;
+			// 走りは速く動くので、ポーズにすぐ合わせる
+			blend = 0.6f;
+		} else {
+			// 待機：ゆっくり呼吸する
+			bob = std::sin(animationTime_ * 3.0f) * 0.008f;
+			armNear = 0.08f;
+			armFar = -0.08f;
+			scarf = -1.15f + std::sin(animationTime_ * 2.0f) * 0.05f;
+		}
+	} else if (isWallSliding_) {
+		// 壁ずり：壁に両手をつき、脚を軽く曲げる
+		armNear = 2.0f;
+		armFar = 1.6f;
+		legNear = 0.5f;
+		legFar = 0.2f;
+		lean = -0.15f;
+		scarf = -1.4f + flutter;
+	} else if (velocity_.y > 0.0f) {
+		// 上昇中：片手を突き上げ、片脚を前に出す
+		armNear = 2.6f;
+		armFar = -0.5f;
+		legNear = 0.9f;
+		legFar = -0.5f;
+		lean = 0.05f;
+		scarf = -1.4f + flutter;
+	} else {
+		// 落下中：両手を広げてバランスを取る
+		armNear = 1.4f;
+		armFar = 1.0f;
+		legNear = 0.35f;
+		legFar = -0.15f;
+		scarf = 0.5f + flutter;
+	}
+
+	armNearAngle_ = std::lerp(armNearAngle_, armNear, blend);
+	armFarAngle_ = std::lerp(armFarAngle_, armFar, blend);
+	legNearAngle_ = std::lerp(legNearAngle_, legNear, blend);
+	legFarAngle_ = std::lerp(legFarAngle_, legFar, blend);
+	bodyLean_ = std::lerp(bodyLean_, lean, kPoseBlendRate);
+	bodyBob_ = std::lerp(bodyBob_, bob, 0.5f);
+	scarfAngle_ = std::lerp(scarfAngle_, scarf, kPoseBlendRate);
+
+	// 着地でつぶれ、ジャンプで縦に伸びる
+	if (hasLanded_) {
+		const float amount = kLandSquash * std::clamp(landingSpeed_ / kLimitFallSpeed, 0.3f, 1.0f);
+		squash_ = {1.0f + amount * 0.6f, 1.0f - amount, 1.0f + amount * 0.6f};
+	}
+	if (hasJumped_ || hasWallJumped_) {
+		squash_ = {1.0f - kJumpStretch * 0.6f, 1.0f + kJumpStretch, 1.0f - kJumpStretch * 0.6f};
+	}
+	squash_.x = std::lerp(squash_.x, 1.0f, kSquashRecoverRate);
+	squash_.y = std::lerp(squash_.y, 1.0f, kSquashRecoverRate);
+	squash_.z = std::lerp(squash_.z, 1.0f, kSquashRecoverRate);
+}
+
+void Player::UpdatePartTransforms() {
+	if (!hasPartModels_) {
+		return;
+	}
+
+	// つぶれ・伸びは足の裏を中心にする（地面から浮いたり沈んだりしないように）
+	const float footY = -kHeight / 2.0f;
+	const Matrix4x4 squashMatrix = calc::MakeAffineMatrix(squash_, {0.0f, 0.0f, 0.0f}, {0.0f, footY * (1.0f - squash_.y), 0.0f});
+	// 体の傾きと上下の揺れ
+	const Matrix4x4 bodyLocal = calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {bodyLean_, 0.0f, 0.0f}, {0.0f, bodyBob_, 0.0f});
+	const Matrix4x4 bodyWorld = calc::Multiply(bodyLocal, calc::Multiply(squashMatrix, worldTransform_.matWorld_));
+
+	auto setPart = [&](Part part, const Vector3& rotation, const Vector3& pivot, const Matrix4x4& parent) {
+		WorldTransform& transform = partTransforms_[part];
+		transform.matWorld_ = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, rotation, pivot), parent);
+		transform.TransferMatrix();
+	};
+
+	// 手足は rotation.x がマイナスで前に振れる
+	setPart(kBody, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, bodyWorld);
+	setPart(kArmNear, {-armNearAngle_, 0.0f, 0.0f}, kShoulderNear, bodyWorld);
+	setPart(kArmFar, {-armFarAngle_, 0.0f, 0.0f}, kShoulderFar, bodyWorld);
+	setPart(kLegNear, {-legNearAngle_, 0.0f, 0.0f}, kHipNear, bodyWorld);
+	setPart(kLegFar, {-legFarAngle_, 0.0f, 0.0f}, kHipFar, bodyWorld);
+	// マフラーの先は rotation.x がプラスで持ち上がる
+	setPart(kScarf, {scarfAngle_, 0.0f, 0.0f}, kScarfRoot, bodyWorld);
 }

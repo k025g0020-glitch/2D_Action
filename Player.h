@@ -1,6 +1,7 @@
 #pragma once
 #include "KamataEngine.h"
 #include "CollisionMapInfo.h"
+#include <array>
 #include <cassert>
 #include <cmath>
 
@@ -13,6 +14,10 @@ public:
 	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, MapChipField* mapChipField, const KamataEngine::Vector3& position);
 	void Update();
 	void Draw();
+
+	// 手足を動かすための部品モデルを設定する（設定しない時は Initialize のモデルをそのまま描く）
+	// arm と leg は左右で同じモデルを使う
+	void SetPartModels(KamataEngine::Model* body, KamataEngine::Model* arm, KamataEngine::Model* leg, KamataEngine::Model* scarf);
 
 	const KamataEngine::Vector3& GetTranslation() const { return worldTransform_.translation_; }
 	void SetTranslation(const KamataEngine::Vector3& translation) { worldTransform_.translation_ = translation; }
@@ -228,4 +233,61 @@ private:
 	static inline const float kBlinkRate = 20.0f;
 
 	bool isDead_ = false;
+
+	// ---- 手足のアニメーション ----
+	// 部品（Near は画面の手前側、Far は奥側）
+	enum Part {
+		kBody,
+		kArmNear,
+		kArmFar,
+		kLegNear,
+		kLegFar,
+		kScarf,
+		kNumParts,
+	};
+
+	// 状態に合わせてポーズを決め、少しずつ近づける
+	void UpdateAnimation();
+	// ポーズから部品のワールド行列を計算する
+	void UpdatePartTransforms();
+
+	// 部品を付ける関節の位置（モデルの座標。runner_*.obj と合わせる）
+	static inline const KamataEngine::Vector3 kShoulderNear = {0.185f, 0.14f, 0.0f};
+	static inline const KamataEngine::Vector3 kShoulderFar = {-0.185f, 0.14f, 0.0f};
+	static inline const KamataEngine::Vector3 kHipNear = {0.08f, -0.07f, 0.0f};
+	static inline const KamataEngine::Vector3 kHipFar = {-0.08f, -0.07f, 0.0f};
+	static inline const KamataEngine::Vector3 kScarfRoot = {0.0f, 0.155f, -0.12f};
+
+	// 走る時の手足の振り：1ブロック進むごとに進む角度と、振れ幅（歩き〜ダッシュ）
+	static inline const float kRunCycleRate = 3.6f;
+	static inline const float kRunSwingMin = 0.35f;
+	static inline const float kRunSwingMax = 0.95f;
+	// ダッシュ中の前傾の最大角度
+	static inline const float kRunLeanMax = 0.3f;
+	// 目標のポーズに近づく割合（1フレームあたり）
+	static inline const float kPoseBlendRate = 0.3f;
+	// 着地でつぶれる・ジャンプで伸びる量と、元に戻る割合
+	static inline const float kLandSquash = 0.22f;
+	static inline const float kJumpStretch = 0.15f;
+	static inline const float kSquashRecoverRate = 0.2f;
+
+	std::array<KamataEngine::WorldTransform, kNumParts> partTransforms_;
+	KamataEngine::Model* bodyModel_ = nullptr;
+	KamataEngine::Model* armModel_ = nullptr;
+	KamataEngine::Model* legModel_ = nullptr;
+	KamataEngine::Model* scarfModel_ = nullptr;
+	bool hasPartModels_ = false;
+
+	// 今のポーズ（手足は前に振る向きを正とする角度）
+	float armNearAngle_ = 0.0f;
+	float armFarAngle_ = 0.0f;
+	float legNearAngle_ = 0.0f;
+	float legFarAngle_ = 0.0f;
+	float bodyLean_ = 0.0f;
+	float bodyBob_ = 0.0f;
+	float scarfAngle_ = -1.0f;
+	KamataEngine::Vector3 squash_ = {1.0f, 1.0f, 1.0f};
+	// 走りの周期と、待機・マフラー用の時間
+	float runPhase_ = 0.0f;
+	float animationTime_ = 0.0f;
 };

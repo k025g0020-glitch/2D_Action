@@ -110,6 +110,11 @@ private:
 	KamataEngine::Model* modelSmoke_ = nullptr;
 	KamataEngine::Model* modelCoin_ = nullptr;
 	KamataEngine::Model* modelCheckpoint_ = nullptr;
+	// プレイヤーの手足を動かすための部品
+	KamataEngine::Model* modelPlayerBody_ = nullptr;
+	KamataEngine::Model* modelPlayerArm_ = nullptr;
+	KamataEngine::Model* modelPlayerLeg_ = nullptr;
+	KamataEngine::Model* modelPlayerScarf_ = nullptr;
 
 	KamataEngine::Camera camera_;
 
