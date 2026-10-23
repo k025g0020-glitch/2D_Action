@@ -12,7 +12,8 @@ void GameScene::Initialize(GameSession* session) {
 	assert(session);
 	session_ = session;
 
-	model_ = Model::CreateFromOBJ("player", true);
+	// プレイヤー：フードとバイザーの、街を駆けるランナー
+	model_ = Model::CreateFromOBJ("runner", true);
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 	modelInvincibleEnemy_ = Model::CreateFromOBJ("shieldEnemy", true);
 	// 足場：街の屋上らしいコンクリートと鉄骨のブロック
