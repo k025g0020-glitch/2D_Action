@@ -125,7 +125,9 @@ private:
 	KamataEngine::Model* modelCoin_ = nullptr;
 	// キラキラのパーティクル用の白い光の粒（パーティクル側で色を付ける）
 	KamataEngine::Model* modelSpark_ = nullptr;
+	// 中間ポイント：ポールと、風で揺れるネオン看板の旗
 	KamataEngine::Model* modelCheckpoint_ = nullptr;
+	KamataEngine::Model* modelCheckpointFlag_ = nullptr;
 	// プレイヤーの手足を動かすための部品
 	KamataEngine::Model* modelPlayerBody_ = nullptr;
 	KamataEngine::Model* modelPlayerArm_ = nullptr;

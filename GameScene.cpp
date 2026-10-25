@@ -34,6 +34,7 @@ void GameScene::Initialize(GameSession* session) {
 	modelCoin_ = Model::CreateFromOBJ("coin", true);
 	modelSpark_ = Model::CreateFromOBJ("spark", true);
 	modelCheckpoint_ = Model::CreateFromOBJ("checkpoint", true);
+	modelCheckpointFlag_ = Model::CreateFromOBJ("checkpoint_flag", true);
 	modelPlayerBody_ = Model::CreateFromOBJ("runner_body", true);
 	modelPlayerArm_ = Model::CreateFromOBJ("runner_arm", true);
 	modelPlayerLeg_ = Model::CreateFromOBJ("runner_leg", true);
@@ -164,6 +165,7 @@ void GameScene::SpawnObjectsFromMap() {
 			case MapChipType::kCheckpoint:
 				checkpoint_ = new Checkpoint();
 				checkpoint_->Initialize(modelCheckpoint_, &camera_, position, session_->checkpointReached);
+				checkpoint_->SetFlagModel(modelCheckpointFlag_);
 				break;
 
 			default:
@@ -711,6 +713,7 @@ GameScene::~GameScene() {
 	delete modelCoin_;
 	delete modelSpark_;
 	delete modelCheckpoint_;
+	delete modelCheckpointFlag_;
 	delete modelPlayerBody_;
 	delete modelPlayerArm_;
 	delete modelPlayerLeg_;
