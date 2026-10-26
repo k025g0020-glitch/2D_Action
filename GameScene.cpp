@@ -310,11 +310,13 @@ void GameScene::EmitPlayerEffects() {
 	// 壁を蹴った所と、壁をずり落ちている所に砂ぼこり
 	const Vector3 center = player_->GetWorldPosition();
 	const float wallDirection = player_->GetWallDirection();
-	const Vector3 wallPoint = {center.x + wallDirection * 0.45f, center.y, center.z};
+	const AABB playerAABB = player_->GetAABB();
+	const float halfWidth = (playerAABB.max.x - playerAABB.min.x) * 0.5f;
+	const Vector3 wallPoint = {center.x + wallDirection * (halfWidth + 0.05f), center.y, center.z};
 	if (player_->HasWallJumped()) {
 		particles_.EmitWallJumpDust(wallPoint, wallDirection);
 	} else if (player_->IsWallSliding() && effectFrame_ % kRunDustInterval == 0) {
-		particles_.EmitRunDust({wallPoint.x, center.y - 0.3f, center.z}, -wallDirection);
+		particles_.EmitRunDust({wallPoint.x, center.y - 0.6f, center.z}, -wallDirection);
 	}
 
 	// ブレーキ中は進行方向の前に（ブレーキは一瞬なので毎フレーム）、ダッシュ中は後ろに砂ぼこりを出す
@@ -644,13 +646,13 @@ void GameScene::CheckAllCollisions() {
 
 		const float enemyCenterY = (enemyAABB.min.y + enemyAABB.max.y) * 0.5f;
 
-		const bool stompedFromAbove = player_->GetVelocity().y < 0.0f && playerCenterY > enemyCenterY + 0.2f;
+		const bool stompedFromAbove = player_->GetVelocity().y < 0.0f && playerCenterY > enemyCenterY + 0.4f;
 
 		if (stompedFromAbove && enemy->CanBeDefeated()) {
 
 			enemy->Defeat();
 			player_->BounceFromEnemy();
-			particles_.EmitStompImpact(calc::Add(enemy->GetWorldPosition(), Vector3(0.0f, 0.3f, 0.0f)));
+			particles_.EmitStompImpact(calc::Add(enemy->GetWorldPosition(), Vector3(0.0f, 0.6f, 0.0f)));
 			++defeatedEnemies_;
 			AddStompScore(enemy->GetWorldPosition());
 

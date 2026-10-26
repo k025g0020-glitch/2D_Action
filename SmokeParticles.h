@@ -18,13 +18,13 @@ private:
 	// 煙が消えるまでの時間（秒）
 	static inline const float kDuration = 0.6f;
 	// 初速と減衰率
-	static inline const float kSpeed = 0.06f;
+	static inline const float kSpeed = 0.1f;
 	static inline const float kSpeedAttenuation = 0.9f;
 	// 煙全体が上へ昇る速さ
 	static inline const float kRiseSpeed = 0.01f;
 	// 大きさ（発生時 → 最大）
-	static inline const float kStartScale = 0.3f;
-	static inline const float kMaxScale = 0.8f;
+	static inline const float kStartScale = 0.5f;
+	static inline const float kMaxScale = 1.4f;
 	// 不透明度の初期値
 	static inline const float kStartAlpha = 0.85f;
 

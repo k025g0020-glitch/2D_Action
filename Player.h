@@ -70,6 +70,10 @@ private:
 		kLeftBottom,  // 左下
 		kRightTop,    // 右上
 		kLeftTop,     // 左上
+		kBottomCenter, // 下の辺の真ん中
+		kTopCenter,    // 上の辺の真ん中
+		kRightCenter,  // 右の辺の真ん中
+		kLeftCenter,   // 左の辺の真ん中
 		kNumCorner    // 要素数
 	};
 
@@ -216,8 +220,10 @@ private:
 	bool isFlipping_ = false;
 
 	//キャラクターの当たり判定サイズ
-	static inline const float kWidth = 0.8f;
-	static inline const float kHeight = 0.8f;
+	static inline const float kWidth = 1.6f;
+	static inline const float kHeight = 1.6f;
+	// モデルの拡大率（モデルは 0.8 マスの大きさで作ってあるので、当たり判定に合わせて 2 倍にする）
+	static inline const float kModelScale = 2.0f;
 
 	static inline const float kBlank = 0.005f;
 

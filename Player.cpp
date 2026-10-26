@@ -21,6 +21,9 @@ void Player::Initialize(Model* model, Camera* camera, MapChipField* mapChipField
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
+	// 体が1マスより大きいので、足の裏がマスの下の辺にそろうように持ち上げる
+	worldTransform_.translation_.y += kHeight / 2.0f - 0.5f;
+	worldTransform_.scale_ = {kModelScale, kModelScale, kModelScale};
 	mapChipField_ = mapChipField;
 
 	worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
@@ -272,10 +275,10 @@ void Player::Move() {
 }
 
 bool Player::IsTouchingWall(float direction) {
-	// 体の横の少し外側を、上下2か所調べる
+	// 体の横の少し外側を、上・真ん中・下の3か所調べる
 	const float x = worldTransform_.translation_.x + direction * (kWidth / 2.0f + kWallCheckDistance);
 	const float offsetY = kHeight / 2.0f - 0.1f;
-	for (float y : {worldTransform_.translation_.y + offsetY, worldTransform_.translation_.y - offsetY}) {
+	for (float y : {worldTransform_.translation_.y + offsetY, worldTransform_.translation_.y, worldTransform_.translation_.y - offsetY}) {
 		const MapChipField::IndexSet indexSet = mapChipField_->GetMapChipIndexByPosition({x, y, 0.0f});
 		if (mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y) == MapChipType::kBlock) {
 			return true;
@@ -301,6 +304,10 @@ Vector3 Player::CornerPosition(const Vector3& center, Corner corner) {
 	    {-kWidth / 2.0f, -kHeight / 2.0f, 0.0f}, // kLeftBottom
 	    {+kWidth / 2.0f, +kHeight / 2.0f, 0.0f}, // kRightTop
 	    {-kWidth / 2.0f, +kHeight / 2.0f, 0.0f}, // kLeftTop
+	    {0.0f, -kHeight / 2.0f, 0.0f},           // kBottomCenter
+	    {0.0f, +kHeight / 2.0f, 0.0f},           // kTopCenter
+	    {+kWidth / 2.0f, 0.0f, 0.0f},            // kRightCenter
+	    {-kWidth / 2.0f, 0.0f, 0.0f},            // kLeftCenter
 	};
 
 	Vector3 result = {center.x + offsetTable[static_cast<uint32_t>(corner)].x, center.y + offsetTable[static_cast<uint32_t>(corner)].y, center.z + offsetTable[static_cast<uint32_t>(corner)].z};
@@ -337,19 +344,14 @@ void Player::MapCollisionUp(CollisionMapInfo& info) {
 
 	// 左上点の判定
 	MapChipField::IndexSet indexSet;
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kLeftTop]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y + 1);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
-	}
-
-	// 右上点の判定
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kRightTop]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y + 1);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
+	// 辺の上の3点（両端の角と真ん中）を調べる。体が1マスより大きいので、角だけだと間のブロックを見落とす
+	for (Corner corner : {kLeftTop, kTopCenter, kRightTop}) {
+		indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[corner]);
+		mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
+		mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y + 1);
+		if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+			hit = true;
+		}
 	}
 
 	if (hit) {
@@ -389,19 +391,14 @@ void Player::MapCollisionDown(CollisionMapInfo& info) {
 
 	// 左下点の判定
 	MapChipField::IndexSet indexSet;
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kLeftBottom]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y - 1);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
-	}
-
-	// 右下点の判定
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kRightBottom]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y - 1);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
+	// 辺の上の3点（両端の角と真ん中）を調べる。体が1マスより大きいので、角だけだと間のブロックを見落とす
+	for (Corner corner : {kLeftBottom, kBottomCenter, kRightBottom}) {
+		indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[corner]);
+		mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
+		mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y - 1);
+		if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+			hit = true;
+		}
 	}
 
 	if (hit) {
@@ -440,19 +437,14 @@ void Player::MapCollisionRight(CollisionMapInfo& info) {
 
 	// 右上点の判定
 	MapChipField::IndexSet indexSet;
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kRightTop]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x - 1, indexSet.y);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
-	}
-
-	// 右下点の判定
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kRightBottom]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x - 1, indexSet.y);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
+	// 辺の上の3点（両端の角と真ん中）を調べる。体が1マスより大きいので、角だけだと間のブロックを見落とす
+	for (Corner corner : {kRightTop, kRightCenter, kRightBottom}) {
+		indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[corner]);
+		mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
+		mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x - 1, indexSet.y);
+		if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+			hit = true;
+		}
 	}
 
 	if (hit) {
@@ -490,19 +482,14 @@ void Player::MapCollisionLeft(CollisionMapInfo& info) {
 
 	// 左上点の判定
 	MapChipField::IndexSet indexSet;
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kLeftTop]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x + 1, indexSet.y);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
-	}
-
-	// 左下点の判定
-	indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[kLeftBottom]);
-	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x + 1, indexSet.y);
-	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
-		hit = true;
+	// 辺の上の3点（両端の角と真ん中）を調べる。体が1マスより大きいので、角だけだと間のブロックを見落とす
+	for (Corner corner : {kLeftTop, kLeftCenter, kLeftBottom}) {
+		indexSet = mapChipField_->GetMapChipIndexByPosition(positionsNew[corner]);
+		mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
+		mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.x + 1, indexSet.y);
+		if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+			hit = true;
+		}
 	}
 
 	if (hit) {
@@ -534,28 +521,16 @@ void Player::OnGroundToggle(const CollisionMapInfo& info) {
 			MapChipType mapChipType;
 			bool hit = false;
 
-			// 足元より「微小な数値」だけ下方向の座標をサンプリングする
+			// 足元より「微小な数値」だけ下方向の座標を、左下・真ん中・右下の3か所サンプリングする
 			float microValue = 0.01f;
-			Vector3 leftBottomTarget = CornerPosition(worldTransform_.translation_, kLeftBottom);
-			Vector3 rightBottomTarget = CornerPosition(worldTransform_.translation_, kRightBottom);
-
-			leftBottomTarget.y -= microValue;
-			rightBottomTarget.y -= microValue;
-
-			MapChipField::IndexSet indexSet;
-
-			// 左下点の判定
-			indexSet = mapChipField_->GetMapChipIndexByPosition(leftBottomTarget);
-			mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-			if (mapChipType == MapChipType::kBlock) {
-				hit = true;
-			}
-
-			// 右下点の判定
-			indexSet = mapChipField_->GetMapChipIndexByPosition(rightBottomTarget);
-			mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
-			if (mapChipType == MapChipType::kBlock) {
-				hit = true;
+			for (Corner corner : {kLeftBottom, kBottomCenter, kRightBottom}) {
+				Vector3 target = CornerPosition(worldTransform_.translation_, corner);
+				target.y -= microValue;
+				MapChipField::IndexSet indexSet = mapChipField_->GetMapChipIndexByPosition(target);
+				mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y);
+				if (mapChipType == MapChipType::kBlock) {
+					hit = true;
+				}
 			}
 
 			// 落下開始（床が消失した）
@@ -792,7 +767,8 @@ void Player::UpdatePartTransforms() {
 	}
 
 	// つぶれ・伸びは足の裏を中心にする（地面から浮いたり沈んだりしないように）
-	const float footY = -kHeight / 2.0f;
+	// この行列は拡大前のモデルの座標で計算するので、足の裏の高さも拡大率で割る
+	const float footY = -kHeight / 2.0f / kModelScale;
 	const Matrix4x4 squashMatrix = calc::MakeAffineMatrix(squash_, {0.0f, 0.0f, 0.0f}, {0.0f, footY * (1.0f - squash_.y), 0.0f});
 	// 体の傾きと上下の揺れ
 	const Matrix4x4 bodyLocal = calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {bodyLean_, 0.0f, 0.0f}, {0.0f, bodyBob_, 0.0f});
