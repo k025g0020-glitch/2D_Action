@@ -12,9 +12,9 @@ struct StageInfo {
 
 // 夜の街のビル群を駆け抜けて、空の星を目指す
 inline constexpr std::array<StageInfo, 3> kStages = {{
-    {"Resources/stage1.csv", 120, "DOWNTOWN", "HOLD SHIFT AND JUMP 3 TIMES IN A ROW!"},
-    {"Resources/stage2.csv", 150, "ROOFTOPS", "TRIPLE JUMP UP THE ROOFTOP STAIRS!"},
-    {"Resources/stage3.csv", 200, "SKYSCRAPERS", "JUMP WHILE TOUCHING A WALL TO WALL JUMP!"},
+    {"Resources/stage1.csv", 240, "DOWNTOWN", "HOLD SHIFT AND JUMP 3 TIMES IN A ROW!"},
+    {"Resources/stage2.csv", 270, "ROOFTOPS", "TRIPLE JUMP UP THE ROOFTOP STAIRS!"},
+    {"Resources/stage3.csv", 300, "SKYSCRAPERS", "JUMP WHILE TOUCHING A WALL TO WALL JUMP!"},
 }};
 
 // クリアしたステージの結果
@@ -36,8 +36,9 @@ struct GameSession {
 	uint32_t score = 0;
 	uint32_t coins = 0;
 	uint32_t stageIndex = 0;
-	// 現在のステージで中間ポイントを通過したか
-	bool checkpointReached = false;
+	// 現在のステージで通過した一番先の中間ポイントの番号（左から 0, 1, 2…。通過していなければ -1）
+	int32_t checkpointIndex = -1;
+	bool HasCheckpoint() const { return checkpointIndex >= 0; }
 	// ミスした後の再挑戦か（復活直後は少しの間無敵にする）
 	bool isRespawn = false;
 

@@ -143,7 +143,8 @@ private:
 	Player* player_ = nullptr;
 	std::list<Enemy*> enemies_;
 	std::list<Coin*> coins_;
-	Checkpoint* checkpoint_ = nullptr;
+	// 中間ポイント（左から順に並べる）
+	std::vector<Checkpoint*> checkpoints_;
 	DeathParticles* deathParticles_ = nullptr;
 	GoalStar* goalStar_ = nullptr;
 	Fade* fade_ = nullptr;

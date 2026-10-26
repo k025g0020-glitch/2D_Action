@@ -110,6 +110,7 @@ void GameScene::Initialize(GameSession* session) {
 
 void GameScene::SpawnObjectsFromMap() {
 	Vector3 playerInitialPosition = mapChipField_->GetMapChipPositionByIndex(2, 18);
+	std::vector<Vector3> checkpointPositions;
 
 	const uint32_t numBlockVertical = mapChipField_->GetNumBlockVirtical();
 	const uint32_t numBlockHorizontal = mapChipField_->GetNumBlockHorizontal();
@@ -163,9 +164,7 @@ void GameScene::SpawnObjectsFromMap() {
 			}
 
 			case MapChipType::kCheckpoint:
-				checkpoint_ = new Checkpoint();
-				checkpoint_->Initialize(modelCheckpoint_, &camera_, position, session_->checkpointReached);
-				checkpoint_->SetFlagModel(modelCheckpointFlag_);
+				checkpointPositions.push_back(position);
 				break;
 
 			default:
@@ -183,9 +182,18 @@ void GameScene::SpawnObjectsFromMap() {
 		goalStar_->SetBeamModel(modelBeam_);
 	}
 
-	// 中間ポイントを通過済みならそこから再開する
-	if (checkpoint_ && checkpoint_->IsActivated()) {
-		playerInitialPosition = checkpoint_->GetPosition();
+	// 中間ポイントは左から順に番号を付ける。通過済みのものは最初から光らせる
+	std::sort(checkpointPositions.begin(), checkpointPositions.end(), [](const Vector3& a, const Vector3& b) { return a.x < b.x; });
+	for (size_t i = 0; i < checkpointPositions.size(); ++i) {
+		Checkpoint* checkpoint = new Checkpoint();
+		checkpoint->Initialize(modelCheckpoint_, &camera_, checkpointPositions[i], static_cast<int32_t>(i) <= session_->checkpointIndex);
+		checkpoint->SetFlagModel(modelCheckpointFlag_);
+		checkpoints_.push_back(checkpoint);
+	}
+
+	// 通過した一番先の中間ポイントから再開する
+	if (session_->HasCheckpoint() && static_cast<size_t>(session_->checkpointIndex) < checkpoints_.size()) {
+		playerInitialPosition = checkpoints_[session_->checkpointIndex]->GetPosition();
 	}
 
 	player_ = new Player();
@@ -330,8 +338,8 @@ void GameScene::UpdateStageObjects() {
 		coin->Update();
 	}
 
-	if (checkpoint_) {
-		checkpoint_->Update();
+	for (Checkpoint* checkpoint : checkpoints_) {
+		checkpoint->Update();
 	}
 
 	// ゴールの星の更新
@@ -408,12 +416,16 @@ void GameScene::UpdatePlayPhase() {
 	CheckAllCollisions();
 
 	// 中間ポイントの通過
-	if (checkpoint_ && !checkpoint_->IsActivated() && checkpoint_->IsPassedBy(player_->GetWorldPosition())) {
-		checkpoint_->Activate();
-		session_->checkpointReached = true;
+	for (size_t i = 0; i < checkpoints_.size(); ++i) {
+		Checkpoint* checkpoint = checkpoints_[i];
+		if (checkpoint->IsActivated() || !checkpoint->IsPassedBy(player_->GetWorldPosition())) {
+			continue;
+		}
+		checkpoint->Activate();
+		session_->checkpointIndex = (std::max)(session_->checkpointIndex, static_cast<int32_t>(i));
 		// 旗の先から紙吹雪
-		particles_.EmitConfetti(calc::Add(checkpoint_->GetPosition(), Vector3(0.4f, 1.3f, 0.0f)));
-		AddPopup(calc::Add(checkpoint_->GetPosition(), Vector3(0.0f, 2.0f, 0.0f)), "CHECKPOINT");
+		particles_.EmitConfetti(calc::Add(checkpoint->GetPosition(), Vector3(0.4f, 1.3f, 0.0f)));
+		AddPopup(calc::Add(checkpoint->GetPosition(), Vector3(0.0f, 2.0f, 0.0f)), "CHECKPOINT");
 	}
 
 	// 穴に落ちたらミス
@@ -470,16 +482,21 @@ void GameScene::Draw() {
 		player_->Draw();
 	}
 
+	// ブロックはカメラに映っている列だけ描く（横に長いステージでも重くならないように）
+	const float viewHalfWidth = cameraController_->GetViewHalfWidth() + 1.0f;
+	const int32_t numColumns = static_cast<int32_t>(mapChipField_->GetNumBlockHorizontal());
+	const int32_t firstColumn = (std::max)(0, static_cast<int32_t>(std::floor(camera_.translation_.x - viewHalfWidth)));
+	const int32_t lastColumn = (std::min)(numColumns - 1, static_cast<int32_t>(std::ceil(camera_.translation_.x + viewHalfWidth)));
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
-		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
-			if (!worldTransformBlock)
-				continue;
-			modelBlock_->Draw(*worldTransformBlock, camera_);
+		for (int32_t x = firstColumn; x <= lastColumn; ++x) {
+			if (WorldTransform* worldTransformBlock = worldTransformBlockLine[x]) {
+				modelBlock_->Draw(*worldTransformBlock, camera_);
+			}
 		}
 	}
 
-	if (checkpoint_) {
-		checkpoint_->Draw();
+	for (Checkpoint* checkpoint : checkpoints_) {
+		checkpoint->Draw();
 	}
 
 	for (Coin* coin : coins_) {
@@ -676,7 +693,9 @@ GameScene::~GameScene() {
 	for (Coin* coin : coins_) {
 		delete coin;
 	}
-	delete checkpoint_;
+	for (Checkpoint* checkpoint : checkpoints_) {
+		delete checkpoint;
+	}
 	delete modelBlock_;
 	delete cityBackground_;
 	delete mapChipField_;

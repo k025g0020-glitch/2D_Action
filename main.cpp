@@ -113,7 +113,7 @@ void ChangeScene() {
 				StartTitle();
 			} else {
 				++gameSession.stageIndex;
-				gameSession.checkpointReached = false;
+				gameSession.checkpointIndex = -1;
 				gameSession.isRespawn = false;
 				StartStageIntro();
 			}

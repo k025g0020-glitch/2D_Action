@@ -45,7 +45,7 @@ void StageIntroScene::Draw() {
 	std::snprintf(buffer, sizeof(buffer), "LIFE * %d", session_->lives);
 	text_.Print(buffer, 640.0f, 380.0f, 40.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
 
-	if (session_->checkpointReached) {
+	if (session_->HasCheckpoint()) {
 		text_.Print("FROM CHECKPOINT", 640.0f, 450.0f, 28.0f, {1.0f, 0.5f, 0.4f, 1.0f}, BitmapText::Align::kCenter);
 	}
 
