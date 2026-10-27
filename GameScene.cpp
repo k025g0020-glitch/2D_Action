@@ -25,6 +25,7 @@ void GameScene::Initialize(GameSession* session) {
 	modelRobotBody_ = Model::CreateFromOBJ("robot_body", true);
 	modelRobotHead_ = Model::CreateFromOBJ("robot_head", true);
 	modelRobotBeacon_ = Model::CreateFromOBJ("robot_beacon", true);
+	modelGrenade_ = Model::CreateFromOBJ("grenade", true);
 	// 足場：街の屋上らしいコンクリートと鉄骨のブロック
 	modelBlock_ = Model::CreateFromOBJ("cityblock", true);
 	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
@@ -148,6 +149,7 @@ void GameScene::SpawnObjectsFromMap() {
 					// 動かない無敵敵：装甲の警備ロボット
 					enemy->Initialize(modelInvincibleEnemy_, &camera_, mapChipField_, position, Enemy::Type::kInvincible);
 					enemy->SetRobotModels(modelRobotBody_, modelRobotHead_, modelRobotBeacon_);
+					enemy->SetWeaponModel(modelGrenade_);
 				}
 				enemies_.push_back(enemy);
 				break;
@@ -322,7 +324,35 @@ void GameScene::UpdateStageObjects() {
 	// 敵の更新 (複数)
 	for (Enemy* enemy : enemies_) {
 		enemy->Update();
+		// 警備ロボットが武器を投げた
+		if (enemy->HasThrown()) {
+			ShockGrenade* grenade = new ShockGrenade();
+			grenade->Initialize(modelGrenade_, &camera_, mapChipField_, enemy->GetThrowOrigin(), enemy->GetThrowTarget());
+			grenades_.push_back(grenade);
+		}
 	}
+
+	// 電撃グレネードの更新。ブロックに当たったらはじけて消える
+	for (ShockGrenade* grenade : grenades_) {
+		// プレイヤーに当たってはじけたものは、当たった時に演出を出している
+		const bool wasFlying = !grenade->IsExploded() && !grenade->IsGone();
+		grenade->Update();
+		if (!wasFlying) {
+			continue;
+		}
+		if (grenade->IsExploded()) {
+			particles_.EmitShockBurst(grenade->GetPosition());
+		} else if (!grenade->IsGone() && effectFrame_ % kShockTrailInterval == 0) {
+			particles_.EmitShockTrail(grenade->GetPosition());
+		}
+	}
+	grenades_.remove_if([](ShockGrenade* grenade) {
+		if (grenade->IsExploded() || grenade->IsGone()) {
+			delete grenade;
+			return true;
+		}
+		return false;
+	});
 
 	for (Coin* coin : coins_) {
 		coin->Update();
@@ -388,6 +418,11 @@ void GameScene::UpdatePlayPhase() {
 	// 自キャラの更新
 	player_->Update();
 	EmitPlayerEffects();
+
+	// 警備ロボットにプレイヤーの位置を教える（近くにいれば武器を投げてくる）
+	for (Enemy* enemy : enemies_) {
+		enemy->SetThrowTarget(player_->GetWorldPosition());
+	}
 
 	UpdateStageObjects();
 
@@ -498,6 +533,10 @@ void GameScene::Draw() {
 	// 煙は半透明なので、背後のブロックが透けて見えるようにブロックの後に描画する
 	for (Enemy* enemy : enemies_) {
 		enemy->Draw();
+	}
+
+	for (ShockGrenade* grenade : grenades_) {
+		grenade->Draw();
 	}
 
 	// 半透明のパーティクルは最後にまとめて描画する
@@ -650,6 +689,16 @@ void GameScene::CheckAllCollisions() {
 		}
 	}
 
+	// 電撃グレネードに当たるとミス（無敵中でもグレネードははじけて消える）
+	for (ShockGrenade* grenade : grenades_) {
+		if (grenade->IsExploded() || grenade->IsGone() || !calc::IsCollision(playerAABB, grenade->GetAABB())) {
+			continue;
+		}
+		grenade->Explode();
+		particles_.EmitShockBurst(grenade->GetPosition());
+		player_->OnCollision(nullptr);
+	}
+
 	// コインの取得
 	for (Coin* coin : coins_) {
 		if (!coin->IsAvailable()) {
@@ -679,6 +728,9 @@ GameScene::~GameScene() {
 	delete player_;
 	for (Enemy* enemy : enemies_) {
 		delete enemy;
+	}
+	for (ShockGrenade* grenade : grenades_) {
+		delete grenade;
 	}
 	for (Coin* coin : coins_) {
 		delete coin;
@@ -714,6 +766,7 @@ GameScene::~GameScene() {
 	delete modelRobotBody_;
 	delete modelRobotHead_;
 	delete modelRobotBeacon_;
+	delete modelGrenade_;
 	delete modelDeathParticle_;
 	delete goalStar_;
 	delete modelGoalStar_;

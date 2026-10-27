@@ -28,6 +28,20 @@ public:
 	void SetDroneModels(KamataEngine::Model* body, KamataEngine::Model* rotor);
 	// 倒せない敵（警備ロボット）の胴体・頭・警告灯のモデルを設定する
 	void SetRobotModels(KamataEngine::Model* body, KamataEngine::Model* head, KamataEngine::Model* beacon);
+	// 警備ロボットが投げる武器のモデル（投げる前に頭の上に掲げて見せる）
+	void SetWeaponModel(KamataEngine::Model* weapon) { weaponModel_ = weapon; }
+
+	// 警備ロボットが狙う相手（プレイヤー）の位置。近くにいれば武器を投げる
+	// 設定はそのフレームだけ有効なので、投げさせたい間は毎フレーム Update の前に設定する
+	void SetThrowTarget(const KamataEngine::Vector3& target) {
+		throwTarget_ = target;
+		hasThrowTarget_ = true;
+	}
+	// このフレームに武器を投げた
+	bool HasThrown() const { return hasThrown_; }
+	// 投げた武器が出る位置と、狙った位置
+	const KamataEngine::Vector3& GetThrowOrigin() const { return throwOrigin_; }
+	const KamataEngine::Vector3& GetThrowTarget() const { return lockedTarget_; }
 
 	const KamataEngine::Vector3& GetTranslation() const { return worldTransform_.translation_; }
 	void SetTranslation(const KamataEngine::Vector3& translation) { worldTransform_.translation_ = translation; }
@@ -47,6 +61,10 @@ public:
 
 private:
 	void UpdateFlying();
+	// 警備ロボット：プレイヤーが近くにいたら、武器を掲げてから投げる
+	void UpdateThrowing();
+	// 武器を掲げる位置（ワールド座標）
+	KamataEngine::Vector3 GetWeaponHoldPosition() const;
 	void UpdateWorldTransform();
 	// 進行方向を反転する
 	void TurnAround();
@@ -240,4 +258,38 @@ private:
 	KamataEngine::Model* beaconModel_ = nullptr;
 	bool hasRobotModels_ = false;
 	float robotTimer_ = 0.0f;
+	float headYaw_ = 0.0f;
+	float beaconAngle_ = 0.0f;
+
+	// ---- 警備ロボットの武器投げ ----
+	// プレイヤーがこの範囲（ロボットの中心からの横・縦の距離）に入ったら投げる
+	static inline const float kThrowRangeX = 10.0f;
+	static inline const float kThrowRangeY = 7.0f;
+	// 範囲に入ってから最初に構えるまでの時間<秒>
+	static inline const float kFirstThrowDelay = 0.4f;
+	// 武器を掲げてから投げるまでの時間<秒>（この間に避ける準備ができる）
+	static inline const float kThrowWindUpTime = 0.6f;
+	// 投げてから次に構えるまでの時間<秒>
+	static inline const float kThrowInterval = 1.8f;
+	// 武器を掲げる高さ（ロボットの中心から上へ）
+	static inline const float kWeaponHoldHeight = 1.35f;
+	// 構えた時に後ろへ反る角度と、投げた後に前へ振る角度
+	static inline const float kWindUpLean = 0.3f;
+	static inline const float kThrowLean = 0.35f;
+	// 構えている間の警告灯の回る速さの倍率
+	static inline const float kWindUpBeaconRate = 3.0f;
+
+	KamataEngine::Model* weaponModel_ = nullptr;
+	KamataEngine::WorldTransform weaponTransform_;
+	KamataEngine::Vector3 throwTarget_ = {};
+	bool hasThrowTarget_ = false;
+	// 構えた時に狙いを決めた位置
+	KamataEngine::Vector3 lockedTarget_ = {};
+	KamataEngine::Vector3 throwOrigin_ = {};
+	float throwCooldown_ = kFirstThrowDelay;
+	// 構えてからの時間（構えていない時はマイナス）
+	float windUpTimer_ = -1.0f;
+	// 投げた後に前へ振る動きの残り（1 → 0）
+	float throwRecoil_ = 0.0f;
+	bool hasThrown_ = false;
 };

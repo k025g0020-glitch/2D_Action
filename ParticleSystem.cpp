@@ -13,6 +13,8 @@ using namespace KamataEngine;
 namespace {
 // 砂ぼこりの色
 const Vector4 kDustColor = {0.92f, 0.88f, 0.8f, 0.85f};
+// 電撃の色（青白い）
+const Vector4 kShockColor = {0.55f, 0.9f, 1.0f, 1.0f};
 // 紙吹雪の色
 const Vector4 kConfettiColors[] = {
     {1.0f, 0.35f, 0.3f, 1.0f},
@@ -291,4 +293,39 @@ void ParticleSystem::EmitTwinkle(const Vector3& center, float radius) {
 	desc.spin = 0.1f;
 	desc.life = 0.6f;
 	Emit(desc);
+}
+
+void ParticleSystem::EmitShockTrail(const Vector3& position) {
+	EmitDesc desc;
+	desc.model = starModel_;
+	desc.position = {position.x, position.y, position.z - 0.2f};
+	desc.positionRandom = {0.12f, 0.12f, 0.0f};
+	desc.velocityRandom = {0.01f, 0.01f, 0.0f};
+	desc.color = kShockColor;
+	desc.startScale = 0.22f;
+	desc.endScale = 0.0f;
+	desc.spin = 0.3f;
+	desc.life = 0.25f;
+	Emit(desc);
+}
+
+void ParticleSystem::EmitShockBurst(const Vector3& position) {
+	// 青白い電撃が四方に飛び散り、黄色い火花が混じる
+	EmitSparkles(position, kShockColor, 14, 0.22f);
+	EmitSparkles(position, {1.0f, 0.85f, 0.3f, 1.0f}, 8, 0.14f);
+	// 焦げたような黒い煙が広がる
+	for (uint32_t i = 0; i < 8; ++i) {
+		EmitDesc desc;
+		desc.model = sphereModel_;
+		desc.position = {position.x, position.y, position.z - 0.1f};
+		desc.positionRandom = {0.2f, 0.2f, 0.0f};
+		desc.velocityRandom = {0.06f, 0.06f, 0.0f};
+		desc.velocity = {0.0f, 0.02f, 0.0f};
+		desc.color = {0.18f, 0.18f, 0.24f, 0.8f};
+		desc.startScale = 0.3f;
+		desc.endScale = 0.7f;
+		desc.drag = 0.88f;
+		desc.life = 0.45f;
+		Emit(desc);
+	}
 }

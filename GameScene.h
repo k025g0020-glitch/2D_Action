@@ -13,6 +13,7 @@
 #include "MapChipField.h"
 #include "ParticleSystem.h"
 #include "Player.h"
+#include "ShockGrenade.h"
 #include "calc.h"
 #include <list>
 #include <string>
@@ -117,6 +118,8 @@ private:
 	KamataEngine::Model* modelRobotHead_ = nullptr;
 	KamataEngine::Model* modelRobotBeacon_ = nullptr;
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
+	// 警備ロボットが投げる電撃グレネード
+	KamataEngine::Model* modelGrenade_ = nullptr;
 	KamataEngine::Model* modelDeathParticle_ = nullptr;
 	KamataEngine::Model* modelGoalStar_ = nullptr;
 	// ゴールの星から空へ伸びる光の柱
@@ -142,6 +145,8 @@ private:
 	MapChipField* mapChipField_ = nullptr;
 	Player* player_ = nullptr;
 	std::list<Enemy*> enemies_;
+	// 飛んでいる電撃グレネード
+	std::list<ShockGrenade*> grenades_;
 	std::list<Coin*> coins_;
 	// 中間ポイント（左から順に並べる）
 	std::vector<Checkpoint*> checkpoints_;
@@ -157,6 +162,8 @@ private:
 	static inline const uint32_t kRunDustInterval = 4;
 	// ゴールの星のまわりで光る間隔（フレーム）
 	static inline const uint32_t kTwinkleInterval = 10;
+	// 電撃グレネードの後ろに火花を出す間隔（フレーム）
+	static inline const uint32_t kShockTrailInterval = 2;
 	// 光の柱の中を光の粒が昇っていく間隔（フレーム）
 	static inline const uint32_t kRisingLightInterval = 5;
 

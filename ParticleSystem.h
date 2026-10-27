@@ -29,6 +29,10 @@ public:
 	void EmitConfetti(const KamataEngine::Vector3& position);
 	// 光の柱の中を昇っていく光の粒（base は柱の根元、halfWidth は柱の幅の半分）
 	void EmitRisingLight(const KamataEngine::Vector3& base, float halfWidth);
+	// 電撃グレネードが飛んでいる時に後ろに残る青白い火花
+	void EmitShockTrail(const KamataEngine::Vector3& position);
+	// 電撃グレネードが当たってはじける（青白い電撃と黄色い火花、黒い煙）
+	void EmitShockBurst(const KamataEngine::Vector3& position);
 	// 星のまわりで小さく光る
 	void EmitTwinkle(const KamataEngine::Vector3& center, float radius);
 

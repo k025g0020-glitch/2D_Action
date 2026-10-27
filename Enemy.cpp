@@ -100,6 +100,7 @@ void Enemy::Update() {
 		velocity_ = {};
 		// 頭を振って見張り、警告灯を回すための時間
 		robotTimer_ += 1.0f / 60.0f;
+		UpdateThrowing();
 		UpdateWorldTransform();
 		return;
 	}
@@ -212,7 +213,59 @@ void Enemy::SetRobotModels(Model* body, Model* head, Model* beacon) {
 	for (WorldTransform& part : partTransforms_) {
 		part.Initialize();
 	}
+	weaponTransform_.Initialize();
 	UpdateWorldTransform();
+}
+
+Vector3 Enemy::GetWeaponHoldPosition() const {
+	return {worldTransform_.translation_.x, worldTransform_.translation_.y + kWeaponHoldHeight, worldTransform_.translation_.z};
+}
+
+void Enemy::UpdateThrowing() {
+	constexpr float kDeltaTime = 1.0f / 60.0f;
+	hasThrown_ = false;
+
+	const Vector3& position = worldTransform_.translation_;
+	const float dx = throwTarget_.x - position.x;
+	const float dy = throwTarget_.y - position.y;
+	const bool inRange = hasThrowTarget_ && std::abs(dx) <= kThrowRangeX && std::abs(dy) <= kThrowRangeY;
+	// 狙う相手は毎フレーム設定し直してもらう
+	hasThrowTarget_ = false;
+
+	float targetYaw = std::sin(robotTimer_ * kScanSpeed) * kScanAngle;
+	if (inRange) {
+		// プレイヤーの方を向き、頭も正面に向けてにらむ
+		const float faceAngle = (dx >= 0.0f) ? std::numbers::pi_v<float> / 2.0f : std::numbers::pi_v<float> * 3.0f / 2.0f;
+		worldTransform_.rotation_.y = std::lerp(worldTransform_.rotation_.y, faceAngle, 0.2f);
+		targetYaw = 0.0f;
+		lockedTarget_ = throwTarget_;
+	}
+	headYaw_ = std::lerp(headYaw_, targetYaw, 0.15f);
+
+	if (windUpTimer_ >= 0.0f) {
+		// 武器を掲げて構えている
+		windUpTimer_ += kDeltaTime;
+		if (windUpTimer_ >= kThrowWindUpTime) {
+			// 投げる（狙うのは最後に見た相手の位置）
+			hasThrown_ = true;
+			throwOrigin_ = GetWeaponHoldPosition();
+			windUpTimer_ = -1.0f;
+			throwCooldown_ = kThrowInterval;
+			throwRecoil_ = 1.0f;
+		}
+	} else if (inRange) {
+		throwCooldown_ -= kDeltaTime;
+		if (throwCooldown_ <= 0.0f) {
+			windUpTimer_ = 0.0f;
+		}
+	} else {
+		// 範囲の外にいる間は、入ってきてから少し待って構える
+		throwCooldown_ = std::max(throwCooldown_, kFirstThrowDelay);
+	}
+
+	throwRecoil_ = std::max(throwRecoil_ - kDeltaTime * 4.0f, 0.0f);
+	// 構えている間は警告灯を速く回す
+	beaconAngle_ += kBeaconSpinSpeed * kDeltaTime * (windUpTimer_ >= 0.0f ? kWindUpBeaconRate : 1.0f);
 }
 
 void Enemy::UpdatePartTransforms() {
@@ -220,16 +273,28 @@ void Enemy::UpdatePartTransforms() {
 	const Matrix4x4& parent = worldTransform_.matWorld_;
 
 	if (hasRobotModels_) {
-		partTransforms_[0].matWorld_ = parent;
+		// 構えている間は後ろへ反り、投げた直後は前へ振る（rotation.x がプラスで前に傾く）
+		const float windUp = (windUpTimer_ >= 0.0f) ? std::min(windUpTimer_ / kThrowWindUpTime, 1.0f) : 0.0f;
+		const float lean = -kWindUpLean * windUp + kThrowLean * throwRecoil_;
+		const Matrix4x4 bodyWorld = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {lean, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}), parent);
+		partTransforms_[0].matWorld_ = bodyWorld;
 		partTransforms_[0].TransferMatrix();
-		// 頭をゆっくり左右に振って見張る
-		const float headYaw = std::sin(robotTimer_ * kScanSpeed) * kScanAngle;
-		const Matrix4x4 headWorld = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, headYaw, 0.0f}, kRobotNeck), parent);
+		// 頭は左右に振って見張る（プレイヤーが近くにいる時は正面を向く）
+		const Matrix4x4 headWorld = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, headYaw_, 0.0f}, kRobotNeck), bodyWorld);
 		partTransforms_[1].matWorld_ = headWorld;
 		partTransforms_[1].TransferMatrix();
 		// 頭の上の警告灯を回す
-		partTransforms_[2].matWorld_ = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, robotTimer_ * kBeaconSpinSpeed, 0.0f}, kRobotBeacon), headWorld);
+		partTransforms_[2].matWorld_ = calc::Multiply(calc::MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, beaconAngle_, 0.0f}, kRobotBeacon), headWorld);
 		partTransforms_[2].TransferMatrix();
+
+		// 構えている武器：頭の上にポンと出てきて、ゆっくり回りながら上下に揺れる
+		if (windUpTimer_ >= 0.0f) {
+			const float appear = std::min(windUpTimer_ / 0.12f, 1.0f);
+			Vector3 holdPosition = GetWeaponHoldPosition();
+			holdPosition.y += std::sin(windUpTimer_ * 20.0f) * 0.05f;
+			weaponTransform_.matWorld_ = calc::MakeAffineMatrix({appear, appear, appear}, {0.0f, 0.0f, windUpTimer_ * 6.0f}, holdPosition);
+			weaponTransform_.TransferMatrix();
+		}
 		return;
 	}
 
@@ -649,6 +714,9 @@ void Enemy::Draw() {
 			bodyModel_->Draw(partTransforms_[0], *camera_);
 			headModel_->Draw(partTransforms_[1], *camera_);
 			beaconModel_->Draw(partTransforms_[2], *camera_);
+			if (weaponModel_ && windUpTimer_ >= 0.0f) {
+				weaponModel_->Draw(weaponTransform_, *camera_);
+			}
 		} else if (hasDroneModels_) {
 			bodyModel_->Draw(partTransforms_[0], *camera_);
 			for (size_t i = 0; i < kRotorPositions.size(); ++i) {
