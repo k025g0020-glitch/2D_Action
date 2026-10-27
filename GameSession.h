@@ -14,7 +14,7 @@ struct StageInfo {
 inline constexpr std::array<StageInfo, 3> kStages = {{
     {"Resources/stage1.csv", 240, "DOWNTOWN", "HOLD SHIFT AND JUMP 3 TIMES IN A ROW!"},
     {"Resources/stage2.csv", 270, "ROOFTOPS", "TRIPLE JUMP UP THE ROOFTOP STAIRS!"},
-    {"Resources/stage3.csv", 300, "SKYSCRAPERS", "JUMP WHILE TOUCHING A WALL TO WALL JUMP!"},
+    {"Resources/stage3.csv", 300, "SKYSCRAPERS", "DASH ACROSS THE ROOFTOPS. DON'T FALL!"},
 }};
 
 // クリアしたステージの結果

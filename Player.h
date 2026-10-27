@@ -52,12 +52,6 @@ public:
 	bool IsDashingOnGround() const { return onGround_ && isDashing_ && std::abs(velocity_.x) > kLimitRunSpeed; }
 	// 地上で進行方向と逆に入力してブレーキをかけている
 	bool IsSkidding() const { return isSkidding_; }
-	// 壁に張り付いてずり落ちている
-	bool IsWallSliding() const { return isWallSliding_; }
-	// 壁ジャンプした
-	bool HasWallJumped() const { return hasWallJumped_; }
-	// 触れている（最後に触れた）壁の向き（右の壁なら +1、左の壁なら -1）
-	float GetWallDirection() const { return wallDirection_; }
 	// 足元の座標
 	KamataEngine::Vector3 GetFeetPosition() const {
 		return {worldTransform_.translation_.x, worldTransform_.translation_.y - kHeight / 2.0f, worldTransform_.translation_.z};
@@ -107,8 +101,6 @@ private:
 		kLeft,
 	};
 
-	// 左右どちらかの壁に触れているか（direction は +1 で右、-1 で左）
-	bool IsTouchingWall(float direction);
 	// 指定した向きに振り向く
 	void FaceDirection(LRDirection direction);
 
@@ -189,25 +181,6 @@ private:
 	uint32_t jumpStage_ = 0;
 	// 着地してからの、次の段に進める残り時間
 	float multiJumpTimer_ = 0.0f;
-	// 壁ずり・壁ジャンプ
-	// 壁に張り付いている時の最大落下速度
-	static inline const float kWallSlideSpeed = 0.1f;
-	// 壁ジャンプの横方向・縦方向の初速
-	static inline const float kWallJumpSpeedX = 0.2f;
-	static inline const float kWallJumpSpeedY = 0.5f;
-	// 壁ジャンプ直後に左右の入力を受け付けない時間<秒>（すぐ同じ壁に戻らないように）
-	static inline const float kWallJumpLockTime = 0.12f;
-	// 壁から離れた後も壁ジャンプできる猶予時間<秒>
-	static inline const float kWallJumpGraceTime = 0.08f;
-	// 壁に触れているかを調べる、体の横からの距離
-	static inline const float kWallCheckDistance = 0.05f;
-
-	float wallJumpLockTimer_ = 0.0f;
-	float wallContactTimer_ = 0.0f;
-	float wallDirection_ = 0.0f;
-	bool isWallSliding_ = false;
-	bool hasWallJumped_ = false;
-
 	// このフレームに起きたこと（エフェクト用）
 	bool hasJumped_ = false;
 	bool hasLanded_ = false;

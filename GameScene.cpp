@@ -307,18 +307,6 @@ void GameScene::EmitPlayerEffects() {
 		particles_.EmitLandingDust(feet, player_->GetLandingSpeed());
 	}
 
-	// 壁を蹴った所と、壁をずり落ちている所に砂ぼこり
-	const Vector3 center = player_->GetWorldPosition();
-	const float wallDirection = player_->GetWallDirection();
-	const AABB playerAABB = player_->GetAABB();
-	const float halfWidth = (playerAABB.max.x - playerAABB.min.x) * 0.5f;
-	const Vector3 wallPoint = {center.x + wallDirection * (halfWidth + 0.05f), center.y, center.z};
-	if (player_->HasWallJumped()) {
-		particles_.EmitWallJumpDust(wallPoint, wallDirection);
-	} else if (player_->IsWallSliding() && effectFrame_ % kRunDustInterval == 0) {
-		particles_.EmitRunDust({wallPoint.x, center.y - 0.6f, center.z}, -wallDirection);
-	}
-
 	// ブレーキ中は進行方向の前に（ブレーキは一瞬なので毎フレーム）、ダッシュ中は後ろに砂ぼこりを出す
 	if (player_->IsSkidding()) {
 		particles_.EmitRunDust(feet, velocityX > 0.0f ? 1.0f : -1.0f);

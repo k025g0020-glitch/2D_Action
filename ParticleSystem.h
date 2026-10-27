@@ -19,8 +19,6 @@ public:
 	void EmitLandingDust(const KamataEngine::Vector3& feet, float fallSpeed);
 	// 走っている時・ブレーキをかけた時に足元から出る砂ぼこり（direction は飛ばす向き -1 / +1）
 	void EmitRunDust(const KamataEngine::Vector3& feet, float direction);
-	// 壁ジャンプで壁を蹴った時の砂ぼこり（wallDirection は壁のある向き）
-	void EmitWallJumpDust(const KamataEngine::Vector3& wallPoint, float wallDirection);
 	// キラキラが四方に飛び散る
 	void EmitSparkles(const KamataEngine::Vector3& position, const KamataEngine::Vector4& color, uint32_t count, float speed);
 	// 3段ジャンプの3段目で出る星の輪

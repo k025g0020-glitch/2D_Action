@@ -40,8 +40,6 @@ void Player::Update() {
 	hasJumped_ = false;
 	hasLanded_ = false;
 	isSkidding_ = false;
-	hasWallJumped_ = false;
-	isWallSliding_ = false;
 	// 無敵時間を減らす
 	if (invincibleTimer_ > 0.0f) {
 		invincibleTimer_ = std::max(invincibleTimer_ - 1.0f / 60.0f, 0.0f);
@@ -109,13 +107,9 @@ void Player::Move() {
 
 	Input* input = Input::GetInstance();
 
-	// 壁ジャンプ直後は左右の入力を受け付けない
-	wallJumpLockTimer_ = std::max(wallJumpLockTimer_ - kDeltaTime, 0.0f);
-	const bool inputLocked = wallJumpLockTimer_ > 0.0f;
-
 	// 操作キー：A/D で左右移動、SPACE または W でジャンプ、SHIFT を押している間ダッシュ
-	const bool pushRight = input->PushKey(DIK_D) && !inputLocked;
-	const bool pushLeft = input->PushKey(DIK_A) && !inputLocked;
+	const bool pushRight = input->PushKey(DIK_D);
+	const bool pushLeft = input->PushKey(DIK_A);
 	const bool pushDash = input->PushKey(DIK_LSHIFT) || input->PushKey(DIK_RSHIFT);
 	const bool pushJump = input->PushKey(DIK_SPACE) || input->PushKey(DIK_W);
 	const bool triggerJump = input->TriggerKey(DIK_SPACE) || input->TriggerKey(DIK_W);
@@ -205,29 +199,6 @@ void Player::Move() {
 		}
 	}
 
-	// 空中で壁に触れているか
-	float touchingWall = 0.0f;
-	if (!onGround_) {
-		if (IsTouchingWall(1.0f)) {
-			touchingWall = 1.0f;
-		} else if (IsTouchingWall(-1.0f)) {
-			touchingWall = -1.0f;
-		}
-	}
-	if (touchingWall != 0.0f) {
-		wallDirection_ = touchingWall;
-		wallContactTimer_ = kWallJumpGraceTime;
-	} else {
-		wallContactTimer_ = std::max(wallContactTimer_ - kDeltaTime, 0.0f);
-	}
-
-	// 壁に向かって入力しながら落ちている間は、壁に張り付いてゆっくり落ちる
-	const bool pushTowardWall = (touchingWall > 0.0f && pushRight) || (touchingWall < 0.0f && pushLeft);
-	if (pushTowardWall && velocity_.y < 0.0f) {
-		isWallSliding_ = true;
-		velocity_.y = std::max(velocity_.y, -kWallSlideSpeed);
-	}
-
 	// ジャンプの先行入力
 	if (triggerJump) {
 		jumpBufferTimer_ = kJumpBufferTime;
@@ -257,34 +228,7 @@ void Player::Move() {
 		isJumping_ = true;
 		jumpBufferTimer_ = 0.0f;
 		coyoteTimer_ = 0.0f;
-	} else if (jumpBufferTimer_ > 0.0f && !onGround_ && wallContactTimer_ > 0.0f) {
-		// 壁ジャンプ：壁と反対向きに跳ね返る
-		velocity_.x = -wallDirection_ * kWallJumpSpeedX;
-		velocity_.y = kWallJumpSpeedY;
-		FaceDirection(wallDirection_ > 0.0f ? LRDirection::kLeft : LRDirection::kRight);
-
-		hasWallJumped_ = true;
-		isJumping_ = true;
-		isWallSliding_ = false;
-		// 壁ジャンプは3段ジャンプの段数に数えない
-		jumpStage_ = 0;
-		jumpBufferTimer_ = 0.0f;
-		wallContactTimer_ = 0.0f;
-		wallJumpLockTimer_ = kWallJumpLockTime;
 	}
-}
-
-bool Player::IsTouchingWall(float direction) {
-	// 体の横の少し外側を、上・真ん中・下の3か所調べる
-	const float x = worldTransform_.translation_.x + direction * (kWidth / 2.0f + kWallCheckDistance);
-	const float offsetY = kHeight / 2.0f - 0.1f;
-	for (float y : {worldTransform_.translation_.y + offsetY, worldTransform_.translation_.y, worldTransform_.translation_.y - offsetY}) {
-		const MapChipField::IndexSet indexSet = mapChipField_->GetMapChipIndexByPosition({x, y, 0.0f});
-		if (mapChipField_->GetMapChipTypeByIndex(indexSet.x, indexSet.y) == MapChipType::kBlock) {
-			return true;
-		}
-	}
-	return false;
 }
 
 void Player::FaceDirection(LRDirection direction) {
@@ -715,14 +659,6 @@ void Player::UpdateAnimation() {
 			armFar = -0.08f;
 			scarf = -1.15f + std::sin(animationTime_ * 2.0f) * 0.05f;
 		}
-	} else if (isWallSliding_) {
-		// 壁ずり：壁に両手をつき、脚を軽く曲げる
-		armNear = 2.0f;
-		armFar = 1.6f;
-		legNear = 0.5f;
-		legFar = 0.2f;
-		lean = -0.15f;
-		scarf = -1.4f + flutter;
 	} else if (velocity_.y > 0.0f) {
 		// 上昇中：片手を突き上げ、片脚を前に出す
 		armNear = 2.6f;
@@ -753,7 +689,7 @@ void Player::UpdateAnimation() {
 		const float amount = kLandSquash * std::clamp(landingSpeed_ / kLimitFallSpeed, 0.3f, 1.0f);
 		squash_ = {1.0f + amount * 0.6f, 1.0f - amount, 1.0f + amount * 0.6f};
 	}
-	if (hasJumped_ || hasWallJumped_) {
+	if (hasJumped_) {
 		squash_ = {1.0f - kJumpStretch * 0.6f, 1.0f + kJumpStretch, 1.0f - kJumpStretch * 0.6f};
 	}
 	squash_.x = std::lerp(squash_.x, 1.0f, kSquashRecoverRate);
