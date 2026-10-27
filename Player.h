@@ -150,17 +150,19 @@ private:
 	// 接地状態フラグ
 	bool onGround_ = true;
 
+	// 空中の速度変化は緩やかにして、滞空時間を長くとる（操作に余裕が出るように）
+	// 重力を 0.7 倍にし、ジャンプの初速を √0.7 倍にしているので、跳べる高さは変わらず滞空時間が約 1.2 倍になる
 	// 重力加速度（落下中）
-	static inline const float kGravityAcceleration = 0.08f;
+	static inline const float kGravityAcceleration = 0.056f;
 	// 上昇中の重力（落下中より弱くして、ふわっと上がってストンと落ちる）
-	static inline const float kGravityRise = 0.05f;
+	static inline const float kGravityRise = 0.035f;
 	// 最大落下速度（下方向）
-	static inline const float kLimitFallSpeed = 0.5f;
+	static inline const float kLimitFallSpeed = 0.42f;
 	// ジャンプ初速（上方向）
-	static inline const float kJumpAcceleration = 0.65f;
-	static inline const float kStompBounceSpeed = 0.45f;
+	static inline const float kJumpAcceleration = 0.545f;
+	static inline const float kStompBounceSpeed = 0.38f;
 	// ジャンプボタンを押したまま敵を踏んだ時の跳ね返り
-	static inline const float kStompBounceHighSpeed = 0.65f;
+	static inline const float kStompBounceHighSpeed = 0.545f;
 	// 上昇中にジャンプボタンを離した時に上向きの速度に掛ける割合（小ジャンプ）
 	static inline const float kJumpCutRate = 0.4f;
 	// 足場から落ちた後もジャンプできる猶予時間<秒>（コヨーテタイム）
@@ -179,7 +181,7 @@ private:
 	// 次の段に進むのに必要な横方向の速さ（ダッシュ中でないと出ない速さ）
 	static inline const float kMultiJumpMinSpeed = 0.2f;
 	// 1段目・2段目・3段目のジャンプ初速
-	static inline const float kMultiJumpSpeeds[] = {kJumpAcceleration, 0.75f, 0.88f};
+	static inline const float kMultiJumpSpeeds[] = {kJumpAcceleration, 0.63f, 0.735f};
 	// 3段目の宙返りの回転速度（ラジアン/フレーム）
 	static inline const float kFlipSpeed = 0.3f;
 
@@ -192,7 +194,7 @@ private:
 	static inline const float kWallSlideSpeed = 0.1f;
 	// 壁ジャンプの横方向・縦方向の初速
 	static inline const float kWallJumpSpeedX = 0.2f;
-	static inline const float kWallJumpSpeedY = 0.6f;
+	static inline const float kWallJumpSpeedY = 0.5f;
 	// 壁ジャンプ直後に左右の入力を受け付けない時間<秒>（すぐ同じ壁に戻らないように）
 	static inline const float kWallJumpLockTime = 0.12f;
 	// 壁から離れた後も壁ジャンプできる猶予時間<秒>
