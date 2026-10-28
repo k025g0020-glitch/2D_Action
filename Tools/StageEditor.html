@@ -216,7 +216,8 @@ details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 
       <h3>表示</h3>
       <div class="toggles">
-        <label for="showCamera"><input id="showCamera" type="checkbox" checked> 普段カメラに映る範囲</label>
+        <!-- カメラはステージ全体を映すので、映る範囲の表示は使わない -->
+        <input id="showCamera" type="checkbox" hidden>
         <label for="showPatrol"><input id="showPatrol" type="checkbox" checked> 敵の移動範囲</label>
         <label for="showGrid"><input id="showGrid" type="checkbox" checked> マス目</label>
         <label class="field" for="zoom">拡大 <input id="zoom" type="range" min="14" max="40" value="28"></label>
@@ -292,7 +293,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
   const ROWS = 20;            // MapChipField::kNumBlockVirtical
   const MIN_COLS = 24;        // カメラの横幅（約23マス）より狭いとカメラの移動範囲が壊れる
   const MAX_COLS = 300;       // MapChipField::kNumBlockHorizontal
-  const CAMERA_TOP_ROW = 7;   // 普段カメラは y=-0.5〜12.5 を映す → 7行目より上はプレイヤーが高く登った時だけ映る
+  const CAMERA_TOP_ROW = 0;   // カメラはいつもステージの縦 20 マス全部（y=-0.5〜19.5）を映すので、映らない行はない
   const FLY_AMPLITUDE = 1.5;  // Enemy::kFlyingHeight
 
   const T = { BLANK: 0, BLOCK: 1, COIN: 2, START: 3, GROUND: 4, FLYING: 5, INVINCIBLE: 6, GOAL: 7, CHECKPOINT: 8 };
@@ -721,7 +722,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
       }
     }
 
-    if ($("showCamera").checked) {
+    if ($("showCamera").checked && CAMERA_TOP_ROW > 0) {
       ctx.strokeStyle = css("--accent"); ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
       ctx.beginPath(); ctx.moveTo(0, CAMERA_TOP_ROW * cell); ctx.lineTo(w, CAMERA_TOP_ROW * cell); ctx.stroke(); ctx.setLineDash([]);
       ctx.font = `12px ${css("--font-body")}`; ctx.textAlign = "left"; ctx.textBaseline = "bottom";

@@ -74,7 +74,10 @@ void VolumeMenu::Draw(BitmapText& text, const char* title, float top, float blin
 	text.Print(title, 640.0f, top, 44.0f, kWhite, BitmapText::Align::kCenter);
 
 	constexpr float kCharSize = 36.0f;
-	constexpr float kVolumeRowX = 280.0f;
+	// 音量の行：左端の位置と、そこから項目名・バーまでの距離
+	constexpr float kVolumeRowX = 270.0f;
+	constexpr float kVolumeLabelOffset = 50.0f;
+	constexpr float kVolumeBarOffset = 200.0f;
 	bool hasVolume = false;
 	for (size_t i = 0; i < rows_.size(); ++i) {
 		const Row& row = rows_[i];
@@ -91,11 +94,13 @@ void VolumeMenu::Draw(BitmapText& text, const char* title, float top, float blin
 			text.Print(label, 640.0f, y, kCharSize, color, BitmapText::Align::kCenter);
 		} else {
 			hasVolume = true;
+			// 「>」・項目名・バーをそれぞれ決まった位置に描いて、項目名の長さが違ってもバーの位置をそろえる
 			const int level = (row.type == RowType::kBgm) ? SoundSettings::GetBgmLevel() : SoundSettings::GetSeLevel();
-			char name[8];
-			std::snprintf(name, sizeof(name), "%-3s", row.label);
-			const std::string line = std::string(selected ? "> " : "  ") + name + "  " + VolumeBar(level);
-			text.Print(line, kVolumeRowX, y, kCharSize, color);
+			if (selected) {
+				text.Print(">", kVolumeRowX, y, kCharSize, color);
+			}
+			text.Print(row.label, kVolumeRowX + kVolumeLabelOffset, y, kCharSize, color);
+			text.Print(VolumeBar(level), kVolumeRowX + kVolumeBarOffset, y, kCharSize, color);
 		}
 	}
 
@@ -103,5 +108,5 @@ void VolumeMenu::Draw(BitmapText& text, const char* title, float top, float blin
 		return;
 	}
 	const float hintY = top + 80.0f + kRowSpacing * static_cast<float>(rows_.size()) + 24.0f;
-	text.Print(hasVolume ? "W / S : SELECT   A / D : VOLUME   SPACE : OK" : "W / S : SELECT   SPACE : OK", 640.0f, hintY, 24.0f, kGray, BitmapText::Align::kCenter);
+	text.Print(hasVolume ? "W / S：選ぶ　　A / D：音量　　SPACE：決定" : "W / S：選ぶ　　SPACE：決定", 640.0f, hintY, 24.0f, kGray, BitmapText::Align::kCenter);
 }

@@ -47,16 +47,18 @@ private:
 	static inline const float kLookAheadDistance = 3.0f;
 	static inline const float kVelocityBias = 6.0f;
 	static inline const float kDirectionThreshold = 0.01f;
-	static inline const float kFixedCameraY = 6.0f;
-	// プレイヤーが「カメラの高さ + これ」より上に登ったら、カメラも上に付いていく
-	static inline const float kVerticalFollowOffset = 3.5f;
 
-	// カメラの高さ（普段は固定、プレイヤーが高く登った時だけ上がる）
-	float CalculateCameraY(float targetY) const { return (std::max)(kFixedCameraY, targetY - kVerticalFollowOffset); }
+	// カメラの高さ。プレイヤーの高さに関係なく、いつもステージの一番下から一番上までを映す
+	float CalculateCameraY(float /*targetY*/) const { return kFixedCameraY; }
 	static inline const Rect kMargin = {-6.0f, 6.0f, -2.0f, 2.0f};
 
-	// 平行投影で縦に映す範囲の半分（13ブロック分を映す）
-	static inline const float kViewHalfHeight = 6.5f;
+public:
+	// 平行投影で縦に映す範囲の半分と、カメラの高さ
+	// ステージは縦 20 マス（y = -0.5 の地面の下の辺〜 y = 19.5 の天井の上の辺）なので、全部を映す
+	static inline const float kViewHalfHeight = 10.0f;
+	static inline const float kFixedCameraY = 9.5f;
+
+private:
 	// 平行投影の描画範囲（カメラからの距離）
 	static inline const float kNearClip = 0.1f;
 	static inline const float kFarClip = 1000.0f;

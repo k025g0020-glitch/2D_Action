@@ -33,14 +33,14 @@ void TitleScene::Initialize() {
 	menuItem_ = MenuItem::kStart;
 	isSoundMenuOpen_ = false;
 	volumeMenu_.Initialize({
-	    {VolumeMenu::RowType::kBgm, "BGM"},
-	    {VolumeMenu::RowType::kSe, "SE"},
-	    {VolumeMenu::RowType::kAction, "BACK"},
+	    {VolumeMenu::RowType::kBgm, "音楽"},
+	    {VolumeMenu::RowType::kSe, "効果音"},
+	    {VolumeMenu::RowType::kAction, "もどる"},
 	});
 
 	// ゲーム画面と同じ高さ・距離から街並みを映す
 	camera_.Initialize();
-	camera_.translation_ = {kCameraStartX, 6.0f, -15.0f};
+	camera_.translation_ = {kCameraStartX, CameraController::kFixedCameraY, -15.0f};
 	cityBackground_.Initialize(&camera_, kCityWidth, 2024);
 
 	// 初期フェーズ設定とフェードイン開始
@@ -116,7 +116,7 @@ void TitleScene::Draw() {
 
 	text_.Clear();
 	if (isSoundMenuOpen_) {
-		volumeMenu_.Draw(text_, "SOUND", 320.0f, blinkTimer_);
+		volumeMenu_.Draw(text_, "サウンド", 320.0f, blinkTimer_);
 	} else {
 		DrawMenu();
 	}
@@ -156,7 +156,7 @@ void TitleScene::UpdateMenu() {
 }
 
 void TitleScene::DrawMenu() {
-	static const char* const kLabels[] = {"START", "SOUND"};
+	static const char* const kLabels[] = {"スタート", "サウンド"};
 	for (int i = 0; i < static_cast<int>(MenuItem::kCount); ++i) {
 		const bool selected = static_cast<int>(menuItem_) == i;
 		// 選んでいる項目は黄色にして、矢印を点滅させる
@@ -166,10 +166,10 @@ void TitleScene::DrawMenu() {
 		}
 		text_.Print(label, 640.0f, 380.0f + 52.0f * i, 40.0f, selected ? kYellow : kWhite, BitmapText::Align::kCenter);
 	}
-	text_.Print("W / S : SELECT   SPACE : OK", 640.0f, 490.0f, 24.0f, kGray, BitmapText::Align::kCenter);
+	text_.Print("W / S：選ぶ　　SPACE：決定", 640.0f, 490.0f, 24.0f, kGray, BitmapText::Align::kCenter);
 
-	text_.Print("A / D : MOVE", 640.0f, 550.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
-	text_.Print("SPACE / W : JUMP", 640.0f, 590.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
-	text_.Print("SHIFT : DASH", 640.0f, 630.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
-	text_.Print("ESC : PAUSE", 640.0f, 670.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
+	text_.Print("A / D：移動", 640.0f, 550.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
+	text_.Print("SPACE / W：ジャンプ", 640.0f, 590.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
+	text_.Print("SHIFT：ダッシュ", 640.0f, 630.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
+	text_.Print("ESC：ポーズ", 640.0f, 670.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
 }

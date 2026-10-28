@@ -52,7 +52,7 @@ private:
 	// 背景を流す速さと、街並みの長さ
 	static inline const float kScrollSpeed = 0.03f;
 	static inline const float kCityWidth = 300.0f;
-	static inline const float kCameraStartX = 13.0f;
+	static inline const float kCameraStartX = 19.0f;
 
 	// タイトルロゴ「星屑ランナー」：文字本体と、まわりのネオンの光
 	// 光は明るさを揺らし、ロゴ全体はゆっくり上下に浮かせる

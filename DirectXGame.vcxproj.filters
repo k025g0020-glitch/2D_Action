@@ -186,6 +186,9 @@
     <ClInclude Include="BitmapText.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="FontGlyphs.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Checkpoint.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

@@ -109,11 +109,11 @@ void GameScene::Initialize(GameSession* session) {
 	// 一時停止の画面
 	isPaused_ = false;
 	pauseMenu_.Initialize({
-	    {VolumeMenu::RowType::kAction, "RESUME"},
-	    {VolumeMenu::RowType::kAction, "RETRY"},
-	    {VolumeMenu::RowType::kAction, "QUIT"},
-	    {VolumeMenu::RowType::kBgm, "BGM"},
-	    {VolumeMenu::RowType::kSe, "SE"},
+	    {VolumeMenu::RowType::kAction, "再開"},
+	    {VolumeMenu::RowType::kAction, "再挑戦"},
+	    {VolumeMenu::RowType::kAction, "終了"},
+	    {VolumeMenu::RowType::kBgm, "音楽"},
+	    {VolumeMenu::RowType::kSe, "効果音"},
 	});
 	pauseText_.Initialize(320);
 	pauseOverlay_ = Sprite::Create(TextureManager::Load("white1x1.png"), {0.0f, 0.0f});
@@ -485,7 +485,7 @@ void GameScene::UpdatePlayPhase() {
 		session_->checkpointIndex = (std::max)(session_->checkpointIndex, static_cast<int32_t>(i));
 		// 旗の先から紙吹雪
 		particles_.EmitConfetti(calc::Add(checkpoint->GetPosition(), Vector3(0.4f, 1.3f, 0.0f)));
-		AddPopup(calc::Add(checkpoint->GetPosition(), Vector3(0.0f, 2.0f, 0.0f)), "CHECKPOINT");
+		AddPopup(calc::Add(checkpoint->GetPosition(), Vector3(0.0f, 2.0f, 0.0f)), "中間ポイント");
 	}
 
 	// 穴に落ちたらミス
@@ -641,7 +641,7 @@ void GameScene::DrawPause() {
 	Sprite::PostDraw();
 
 	pauseText_.Clear();
-	pauseMenu_.Draw(pauseText_, "PAUSE", 150.0f, pauseBlinkTimer_);
+	pauseMenu_.Draw(pauseText_, "ポーズ", 150.0f, pauseBlinkTimer_);
 	pauseText_.Draw();
 }
 
@@ -657,24 +657,24 @@ void GameScene::DrawHud() {
 
 	text_.Clear();
 
-	text_.Print("SCORE", 40.0f, kLabelY, kCharSize);
+	text_.Print("スコア", 40.0f, kLabelY, kCharSize);
 	std::snprintf(buffer, sizeof(buffer), "%06u", session_->score);
 	text_.Print(buffer, 40.0f, kValueY, kCharSize);
 
-	text_.Print("COIN", 330.0f, kLabelY, kCharSize);
-	std::snprintf(buffer, sizeof(buffer), "*%02u", session_->coins);
+	text_.Print("コイン", 330.0f, kLabelY, kCharSize);
+	std::snprintf(buffer, sizeof(buffer), "×%02u", session_->coins);
 	text_.Print(buffer, 330.0f, kValueY, kCharSize, kYellow);
 
-	text_.Print("STAGE", 560.0f, kLabelY, kCharSize);
+	text_.Print("ステージ", 560.0f, kLabelY, kCharSize);
 	std::snprintf(buffer, sizeof(buffer), "%u", session_->stageIndex + 1);
 	text_.Print(buffer, 560.0f, kValueY, kCharSize);
 
-	text_.Print("LIFE", 800.0f, kLabelY, kCharSize);
-	std::snprintf(buffer, sizeof(buffer), "*%d", session_->lives);
+	text_.Print("残機", 800.0f, kLabelY, kCharSize);
+	std::snprintf(buffer, sizeof(buffer), "×%d", session_->lives);
 	text_.Print(buffer, 800.0f, kValueY, kCharSize);
 
 	// 残り時間が少なくなったら赤くする
-	text_.Print("TIME", 1240.0f, kLabelY, kCharSize, kWhite, BitmapText::Align::kRight);
+	text_.Print("タイム", 1240.0f, kLabelY, kCharSize, kWhite, BitmapText::Align::kRight);
 	std::snprintf(buffer, sizeof(buffer), "%03d", static_cast<int>(std::ceil(remainingTime_)));
 	text_.Print(buffer, 1240.0f, kValueY, kCharSize, remainingTime_ <= kHurryTime ? kRed : kWhite, BitmapText::Align::kRight);
 
@@ -713,7 +713,7 @@ void GameScene::AddStompScore(const Vector3& position) {
 		// 得点表を超えて踏み続けたら1UP
 		SoundEffects::Play(SoundEffects::Id::kOneUp);
 		session_->AddLife();
-		AddPopup(position, "1UP");
+		AddPopup(position, "残機+1");
 	}
 }
 
@@ -814,7 +814,7 @@ void GameScene::CheckAllCollisions() {
 		// 100枚集めたら1UP
 		if (session_->AddCoin()) {
 			SoundEffects::Play(SoundEffects::Id::kOneUp);
-			AddPopup(player_->GetWorldPosition(), "1UP");
+			AddPopup(player_->GetWorldPosition(), "残機+1");
 		}
 	}
 }

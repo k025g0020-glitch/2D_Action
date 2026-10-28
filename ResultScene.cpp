@@ -43,12 +43,12 @@ void ResultScene::Initialize(GameSession* session, Type type) {
 	std::vector<VolumeMenu::Row> rows;
 	if (type_ == Type::kStageClear && !session_->IsLastStage()) {
 		choices_.push_back(Choice::kNextStage);
-		rows.push_back({VolumeMenu::RowType::kAction, "NEXT STAGE"});
+		rows.push_back({VolumeMenu::RowType::kAction, "次のステージへ"});
 	}
 	choices_.push_back(Choice::kRetry);
-	rows.push_back({VolumeMenu::RowType::kAction, "RETRY"});
+	rows.push_back({VolumeMenu::RowType::kAction, "再挑戦"});
 	choices_.push_back(Choice::kQuit);
-	rows.push_back({VolumeMenu::RowType::kAction, "QUIT"});
+	rows.push_back({VolumeMenu::RowType::kAction, "終了"});
 	menu_.Initialize(rows);
 	menu_.Open(0);
 	choice_ = Choice::kQuit;
@@ -131,27 +131,27 @@ void ResultScene::DrawStageClear() {
 	char buffer[48];
 
 	if (session_->IsLastStage()) {
-		text_.Print("ALL STAGES CLEAR!", 640.0f, 110.0f, 56.0f, kYellow, BitmapText::Align::kCenter);
+		text_.Print("全ステージ クリア！", 640.0f, 110.0f, 56.0f, kYellow, BitmapText::Align::kCenter);
 	} else {
-		std::snprintf(buffer, sizeof(buffer), "STAGE %u CLEAR!", session_->stageIndex + 1);
+		std::snprintf(buffer, sizeof(buffer), "ステージ%u クリア！", session_->stageIndex + 1);
 		text_.Print(buffer, 640.0f, 110.0f, 56.0f, kYellow, BitmapText::Align::kCenter);
 	}
 
 	const StageResult& result = session_->lastStageResult;
 
-	text_.Print("COIN", kLabelX, 240.0f, kCharSize);
+	text_.Print("コイン", kLabelX, 240.0f, kCharSize);
 	std::snprintf(buffer, sizeof(buffer), "%u", result.coins);
 	text_.Print(buffer, kValueX, 240.0f, kCharSize, kWhite, BitmapText::Align::kRight);
 
-	text_.Print("ENEMY", kLabelX, 300.0f, kCharSize);
+	text_.Print("倒した敵", kLabelX, 300.0f, kCharSize);
 	std::snprintf(buffer, sizeof(buffer), "%u", result.defeatedEnemies);
 	text_.Print(buffer, kValueX, 300.0f, kCharSize, kWhite, BitmapText::Align::kRight);
 
-	text_.Print("TIME BONUS", kLabelX, 360.0f, kCharSize);
-	std::snprintf(buffer, sizeof(buffer), "%u*%u", remainingTime_, kTimeBonusPerSecond);
+	text_.Print("タイムボーナス", kLabelX, 360.0f, kCharSize);
+	std::snprintf(buffer, sizeof(buffer), "%u×%u", remainingTime_, kTimeBonusPerSecond);
 	text_.Print(buffer, kValueX, 360.0f, kCharSize, kWhite, BitmapText::Align::kRight);
 
-	text_.Print("SCORE", kLabelX, 460.0f, kCharSize);
+	text_.Print("スコア", kLabelX, 460.0f, kCharSize);
 	std::snprintf(buffer, sizeof(buffer), "%06u", session_->score);
 	text_.Print(buffer, kValueX, 460.0f, kCharSize, kYellow, BitmapText::Align::kRight);
 }
@@ -159,8 +159,8 @@ void ResultScene::DrawStageClear() {
 void ResultScene::DrawGameOver() {
 	char buffer[32];
 
-	text_.Print("GAME OVER", 640.0f, 240.0f, 72.0f, {1.0f, 0.3f, 0.25f, 1.0f}, BitmapText::Align::kCenter);
+	text_.Print("ゲームオーバー", 640.0f, 240.0f, 72.0f, {1.0f, 0.3f, 0.25f, 1.0f}, BitmapText::Align::kCenter);
 
-	std::snprintf(buffer, sizeof(buffer), "SCORE %06u", session_->score);
+	std::snprintf(buffer, sizeof(buffer), "スコア %06u", session_->score);
 	text_.Print(buffer, 640.0f, 400.0f, 36.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
 }

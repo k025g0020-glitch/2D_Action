@@ -294,6 +294,7 @@
     <ClInclude Include="CameraController.h" />
     <ClInclude Include="CityBackground.h" />
     <ClInclude Include="BitmapText.h" />
+    <ClInclude Include="FontGlyphs.h" />
     <ClInclude Include="Checkpoint.h" />
     <ClInclude Include="Coin.h" />
     <ClInclude Include="ResultScene.h" />

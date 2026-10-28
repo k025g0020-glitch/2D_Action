@@ -19,7 +19,7 @@ void StageIntroScene::Initialize(const GameSession* session) {
 	background_->SetSize({1280.0f, 720.0f});
 	background_->SetColor({0.0f, 0.0f, 0.0f, 1.0f});
 
-	text_.Initialize(64);
+	text_.Initialize(256);
 
 	timer_ = 0.0f;
 	finished_ = false;
@@ -37,20 +37,20 @@ void StageIntroScene::Draw() {
 	background_->Draw();
 	Sprite::PostDraw();
 
-	char buffer[32];
+	char buffer[64];
 
 	text_.Clear();
 
-	std::snprintf(buffer, sizeof(buffer), "STAGE %u", session_->stageIndex + 1);
+	std::snprintf(buffer, sizeof(buffer), "ステージ %u", session_->stageIndex + 1);
 	text_.Print(buffer, 640.0f, 220.0f, 64.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
 	// 街の名前
 	text_.Print(session_->GetStage().name, 640.0f, 300.0f, 32.0f, {1.0f, 0.75f, 0.45f, 1.0f}, BitmapText::Align::kCenter);
 
-	std::snprintf(buffer, sizeof(buffer), "LIFE * %d", session_->lives);
+	std::snprintf(buffer, sizeof(buffer), "残機 × %d", session_->lives);
 	text_.Print(buffer, 640.0f, 380.0f, 40.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
 
 	if (session_->HasCheckpoint()) {
-		text_.Print("FROM CHECKPOINT", 640.0f, 450.0f, 28.0f, {1.0f, 0.5f, 0.4f, 1.0f}, BitmapText::Align::kCenter);
+		text_.Print("中間ポイントから再開", 640.0f, 450.0f, 28.0f, {1.0f, 0.5f, 0.4f, 1.0f}, BitmapText::Align::kCenter);
 	}
 
 	// ステージごとのヒント

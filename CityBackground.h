@@ -72,16 +72,16 @@ private:
 	// 霧の板を、その層のビルからどれだけ手前に置くか
 	static inline const float kFogOffsetZ = 10.0f;
 
-	// 空の板（画面より少し大きく）
-	static inline const float kSkyWidth = 30.0f;
-	static inline const float kSkyHeight = 17.0f;
+	// 空の板（画面より少し大きく。画面はステージの縦 20 マス × 横 約 36 マスを映す）
+	static inline const float kSkyWidth = 40.0f;
+	static inline const float kSkyHeight = 24.0f;
 	static inline const float kSkyZ = 80.0f;
-	// 普段のカメラの高さ（この高さの時にビルの足元が地面の下に隠れる）
-	static inline const float kBaseCameraY = 6.0f;
+	// 普段のカメラの高さ（この高さの時にビルの足元が地面の下に隠れる。CameraController::kFixedCameraY と同じ）
+	static inline const float kBaseCameraY = 9.5f;
 	// ビルの足元の高さ（地面より下にして根元を隠す）
 	static inline const float kBuildingBaseY = -1.0f;
-	// 画面の横幅の半分（少し余裕を持たせる）
-	static inline const float kViewHalfWidth = 13.0f;
+	// 画面の横幅の半分（約 17.8 に少し余裕を持たせる）
+	static inline const float kViewHalfWidth = 19.0f;
 
 	void UpdateTransform(KamataEngine::WorldTransform& worldTransform);
 
