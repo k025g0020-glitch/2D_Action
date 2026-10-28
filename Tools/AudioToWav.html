@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D_Action 音声WAV変換</title>
+<style>
+/* mp4 などの音声を、ゲーム（KamataEngine）で読める WAV に変換するツール
+   ブラウザで開くだけで使える。ファイルはパソコンの中だけで変換し、どこにも送らない */
+:root {
+  --bg: #eaeef3;
+  --panel: #ffffff;
+  --fg: #1b2230;
+  --muted: #5a6678;
+  --line: #d3dae4;
+  --accent: #d9480f;
+  --accent-fg: #ffffff;
+  --ok: #2b8a3e;
+  --err: #c92a2a;
+  --drop: #f6f8fb;
+  --font-body: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", sans-serif;
+  --font-mono: "Consolas", "Menlo", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --panel: #1a2029; --fg: #e5eaf1; --muted: #93a0b2; --line: #2c3542;
+    --accent: #ff8a4c; --accent-fg: #1a1208; --ok: #69db7c; --err: #ff8787; --drop: #151a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --panel: #1a2029; --fg: #e5eaf1; --muted: #93a0b2; --line: #2c3542;
+  --accent: #ff8a4c; --accent-fg: #1a1208; --ok: #69db7c; --err: #ff8787; --drop: #151a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); line-height: 1.6; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.lead { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+h2 { font-size: 15px; margin: 0 0 12px; }
+.drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 150px; border: 2px dashed var(--line); border-radius: 10px; background: var(--drop);
+  text-align: center; padding: 16px; cursor: pointer;
+}
+.drop.over { border-color: var(--accent); }
+.drop strong { font-size: 16px; }
+.drop span { color: var(--muted); font-size: 13px; }
+.options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 20px; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+label.check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
+label.check small { display: block; color: var(--muted); font-size: 12px; }
+select, button { font: inherit; }
+select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); }
+.btn {
+  padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); cursor: pointer;
+  white-space: nowrap;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 700; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.toolbar h2 { margin: 0; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.item { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; }
+.item .name { font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; }
+.item .info { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.item .info.ok { color: var(--ok); }
+.item .info.err { color: var(--err); }
+.item audio { grid-column: 1 / -1; width: 100%; height: 36px; }
+.item .actions { display: flex; gap: 6px; }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+.notes { font-size: 13px; color: var(--muted); margin: 0; padding-left: 20px; }
+.notes code { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<main>
+  <h1>音声 → WAV 変換</h1>
+  <p class="lead">mp4・m4a・mp3 などのファイルから音声を取り出し、ゲームで読める WAV（16bit PCM）に変換します。変換はこのパソコンの中だけで行い、ファイルはどこにも送りません。</p>
+
+  <section>
+    <label class="drop" id="drop" for="fileInput">
+      <strong>ここにファイルをドラッグ＆ドロップ</strong>
+      <span>またはクリックして選ぶ（複数まとめてOK）　mp4 / m4a / mp3 / ogg / webm / wav など</span>
+    </label>
+    <input id="fileInput" type="file" accept="audio/*,video/mp4,video/webm,.mp4,.m4a,.mp3,.ogg,.webm,.wav,.aac,.flac" multiple hidden>
+  </section>
+
+  <section>
+    <h2>変換の設定</h2>
+    <div class="options">
+      <label class="field" for="sampleRate">サンプリングレート
+        <select id="sampleRate">
+          <option value="44100" selected>44100 Hz（おすすめ）</option>
+          <option value="48000">48000 Hz</option>
+          <option value="22050">22050 Hz（効果音を軽くしたい時）</option>
+        </select>
+      </label>
+      <label class="field" for="channels">チャンネル
+        <select id="channels">
+          <option value="2" selected>ステレオ（BGM向け）</option>
+          <option value="1">モノラル（効果音向け・サイズ半分）</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="normalize" checked>
+        <span>音量をそろえる<small>一番大きい所が少し余裕を残した最大音量になるようにする</small></span>
+      </label>
+      <label class="check"><input type="checkbox" id="trim">
+        <span>前後の無音を削る<small>効果音を押した瞬間に鳴らしたい時に。BGMのループには使わない</small></span>
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <div class="toolbar">
+      <h2>ファイル</h2>
+      <div class="actions">
+        <button class="btn" id="reconvert" type="button" disabled>今の設定で変換し直す</button>
+        <button class="btn primary" id="saveAll" type="button" disabled>すべて保存</button>
+        <button class="btn" id="clear" type="button" disabled>一覧を消す</button>
+      </div>
+    </div>
+    <p class="empty" id="empty">まだファイルがありません。</p>
+    <ul class="list" id="list"></ul>
+  </section>
+
+  <section>
+    <h2>ゲームで使う時は</h2>
+    <ul class="notes">
+      <li>保存した WAV を <code>Resources/</code> フォルダに入れて、ゲーム側で読み込みます。</li>
+      <li>書き出す WAV は「RIFF・fmt・data」だけの素直な形（16bit PCM）なので、WAV を読む自作の処理でもそのまま読めます。</li>
+      <li>ファイル名は元の名前の拡張子を <code>.wav</code> にしたものです。日本語や空白は避けて英数字にしておくと安全です。</li>
+      <li>このページは Chrome か Edge で開いてください（mp4・m4a の音声を読めます）。映像だけで音声の入っていない mp4 は変換できません。</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+
+  // 音量をそろえる時の、一番大きい所の大きさ（約 -1dB）
+  const NORMALIZE_PEAK = 0.89;
+  // これより小さい音は無音とみなす（約 -60dB）
+  const SILENCE_LEVEL = 0.001;
+  // 無音を削った時に前後に残す長さ<秒>（音の立ち上がりと余韻を切らないように）
+  const TRIM_MARGIN = 0.01;
+
+  // 読み込んだファイル。{ file, bytes, row, wav, url }
+  const items = [];
+
+  function settings() {
+    return {
+      sampleRate: Number($("sampleRate").value),
+      channels: Number($("channels").value),
+      normalize: $("normalize").checked,
+      trim: $("trim").checked,
+    };
+  }
+
+  // ---- 音声の取り出し ----
+  async function decode(bytes, sampleRate) {
+    // OfflineAudioContext で読むと、指定したサンプリングレートに変換された音声が得られる
+    const context = new OfflineAudioContext(2, 1, sampleRate);
+    // decodeAudioData は渡したデータを使えなくするので、写しを渡す
+    return context.decodeAudioData(bytes.slice(0));
+  }
+
+  // AudioBuffer → チャンネルごとの Float32Array（モノラルにする時は平均する）
+  function toChannels(buffer, channels) {
+    const source = [];
+    for (let c = 0; c < buffer.numberOfChannels; c++) source.push(buffer.getChannelData(c));
+    if (channels === 1) {
+      const mono = new Float32Array(buffer.length);
+      for (const data of source) for (let i = 0; i < mono.length; i++) mono[i] += data[i] / source.length;
+      return [mono];
+    }
+    // ステレオ：元がモノラルなら左右に同じ音を入れる
+    return [source[0], source[1] || source[0]];
+  }
+
+  function trimSilence(data, sampleRate) {
+    const length = data[0].length;
+    const loud = (i) => data.some((ch) => Math.abs(ch[i]) > SILENCE_LEVEL);
+    let start = 0;
+    while (start < length && !loud(start)) start++;
+    let end = length - 1;
+    while (end > start && !loud(end)) end--;
+    if (start >= length) return data; // 全部無音ならそのまま
+    const margin = Math.round(TRIM_MARGIN * sampleRate);
+    start = Math.max(0, start - margin);
+    end = Math.min(length - 1, end + margin);
+    return data.map((ch) => ch.slice(start, end + 1));
+  }
+
+  function normalize(data) {
+    let peak = 0;
+    for (const ch of data) for (let i = 0; i < ch.length; i++) peak = Math.max(peak, Math.abs(ch[i]));
+    if (peak === 0) return data;
+    const gain = NORMALIZE_PEAK / peak;
+    return data.map((ch) => ch.map((v) => v * gain));
+  }
+
+  // ---- WAV（16bit PCM）に書き出す ----
+  function encodeWav(data, sampleRate) {
+    const channels = data.length;
+    const frames = data[0].length;
+    const blockAlign = channels * 2;
+    const dataSize = frames * blockAlign;
+    const view = new DataView(new ArrayBuffer(44 + dataSize));
+    const text = (offset, s) => { for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i)); };
+    text(0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    text(8, "WAVE");
+    text(12, "fmt ");
+    view.setUint32(16, 16, true);            // fmt チャンクの大きさ
+    view.setUint16(20, 1, true);             // 1 = PCM
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);            // 16bit
+    text(36, "data");
+    view.setUint32(40, dataSize, true);
+    let offset = 44;
+    for (let i = 0; i < frames; i++) {
+      for (let c = 0; c < channels; c++) {
+        const v = Math.max(-1, Math.min(1, data[c][i]));
+        view.setInt16(offset, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+        offset += 2;
+      }
+    }
+    return new Blob([view], { type: "audio/wav" });
+  }
+
+  async function convert(item) {
+    const s = settings();
+    setInfo(item, "変換中…", "");
+    item.row.querySelector(".save").disabled = true;
+    try {
+      const buffer = await decode(item.bytes, s.sampleRate);
+      let data = toChannels(buffer, s.channels);
+      if (s.trim) data = trimSilence(data, s.sampleRate);
+      if (s.normalize) data = normalize(data);
+      item.wav = encodeWav(data, s.sampleRate);
+      if (item.url) URL.revokeObjectURL(item.url);
+      item.url = URL.createObjectURL(item.wav);
+      item.row.querySelector("audio").src = item.url;
+      item.row.querySelector("audio").hidden = false;
+      item.row.querySelector(".save").disabled = false;
+      const seconds = data[0].length / s.sampleRate;
+      setInfo(item, `変換しました：${seconds.toFixed(2)} 秒 / ${s.sampleRate} Hz / ${s.channels === 1 ? "モノラル" : "ステレオ"} / 16bit / ${formatSize(item.wav.size)}`, "ok");
+    } catch (e) {
+      item.wav = null;
+      setInfo(item, "変換できませんでした。音声の入っていないファイルか、このブラウザが読めない形式です。mp4・m4a は Chrome か Edge で開くと読めます。", "err");
+    }
+    updateButtons();
+  }
+
+  // ---- 画面 ----
+  function formatSize(bytes) {
+    return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
+  }
+  function wavName(name) {
+    return name.replace(/\.[^.]*$/, "") + ".wav";
+  }
+  function setInfo(item, message, kind) {
+    const info = item.row.querySelector(".info");
+    info.textContent = message;
+    info.className = "info" + (kind ? " " + kind : "");
+  }
+  function updateButtons() {
+    $("empty").hidden = items.length > 0;
+    $("clear").disabled = items.length === 0;
+    $("reconvert").disabled = items.length === 0;
+    $("saveAll").disabled = !items.some((item) => item.wav);
+  }
+  function save(item) {
+    if (!item.wav) return;
+    const a = document.createElement("a");
+    a.href = item.url;
+    a.download = wavName(item.file.name);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function addFiles(files) {
+    for (const file of files) {
+      const row = document.createElement("li");
+      row.className = "item";
+      row.innerHTML = `<div class="name"></div>
+        <div class="actions"><button class="btn primary save" type="button" disabled>保存</button><button class="btn remove" type="button">外す</button></div>
+        <div class="info"></div><audio controls hidden></audio>`;
+      row.querySelector(".name").textContent = `${file.name} → ${wavName(file.name)}`;
+      $("list").appendChild(row);
+      const item = { file, bytes: await file.arrayBuffer(), row, wav: null, url: null };
+      items.push(item);
+      row.querySelector(".save").addEventListener("click", () => save(item));
+      row.querySelector(".remove").addEventListener("click", () => {
+        if (item.url) URL.revokeObjectURL(item.url);
+        items.splice(items.indexOf(item), 1);
+        row.remove();
+        updateButtons();
+      });
+      updateButtons();
+      await convert(item);
+    }
+  }
+
+  $("fileInput").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
+  const drop = $("drop");
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    drop.classList.remove("over");
+    addFiles([...e.dataTransfer.files]);
+  });
+  // ドロップする場所を外したファイルを、ブラウザが開いてしまわないようにする
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => e.preventDefault());
+
+  $("reconvert").addEventListener("click", async () => { for (const item of items) await convert(item); });
+  $("saveAll").addEventListener("click", () => {
+    // まとめて保存すると、ブラウザに「複数のファイルのダウンロードを許可しますか」と聞かれることがある
+    items.filter((item) => item.wav).forEach((item, i) => setTimeout(() => save(item), i * 300));
+  });
+  $("clear").addEventListener("click", () => {
+    for (const item of items) if (item.url) URL.revokeObjectURL(item.url);
+    items.length = 0;
+    $("list").innerHTML = "";
+    updateButtons();
+  });
+  updateButtons();
+})();
+</script>
+</body>
+</html>
