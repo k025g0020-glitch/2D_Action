@@ -5,6 +5,7 @@
 #include "BgmPlayer.h"
 #include "ResultScene.h"
 #include "SoundEffects.h"
+#include "SoundSettings.h"
 #include "StageIntroScene.h"
 #include "TitleScene.h"
 
@@ -174,7 +175,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	// BGM と効果音を読み込んでおく
+	// 保存しておいた音量を読み込み、BGM と効果音を読み込んでおく
+	SoundSettings::Load();
 	BgmPlayer::Load();
 	SoundEffects::Load();
 

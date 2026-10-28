@@ -24,6 +24,8 @@ public:
 	// 曲を流す（同じ曲が流れている時はそのまま続ける）
 	static void Play(Id id);
 	static void Stop();
+	// 音量の設定（SoundSettings）を変えた時に、流れている曲の音量を合わせる
+	static void RefreshVolume();
 	// ステージ番号（0 から）に合った曲
 	static Id StageBgm(uint32_t stageIndex);
 

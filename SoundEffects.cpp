@@ -1,4 +1,5 @@
 #include "SoundEffects.h"
+#include "SoundSettings.h"
 
 using namespace KamataEngine;
 
@@ -14,9 +15,10 @@ void SoundEffects::Load() {
 }
 
 void SoundEffects::Play(Id id) {
-	if (!isLoaded_) {
+	// 音量が 0 の時は鳴らさない
+	if (!isLoaded_ || SoundSettings::GetSeLevel() == 0) {
 		return;
 	}
 	const size_t index = static_cast<size_t>(id);
-	Audio::GetInstance()->PlayWave(handles_[index], false, kEntries[index].volume);
+	Audio::GetInstance()->PlayWave(handles_[index], false, kEntries[index].volume * SoundSettings::GetSeScale());
 }

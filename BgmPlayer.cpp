@@ -1,4 +1,5 @@
 #include "BgmPlayer.h"
+#include "SoundSettings.h"
 #include <algorithm>
 
 using namespace KamataEngine;
@@ -20,8 +21,16 @@ void BgmPlayer::Play(Id id) {
 	}
 	Stop();
 	const size_t index = static_cast<size_t>(id);
-	voiceHandle_ = Audio::GetInstance()->PlayWave(handles_[index], true, kEntries[index].volume);
+	voiceHandle_ = Audio::GetInstance()->PlayWave(handles_[index], true, kEntries[index].volume * SoundSettings::GetBgmScale());
 	current_ = id;
+}
+
+void BgmPlayer::RefreshVolume() {
+	if (current_ == Id::kNone) {
+		return;
+	}
+	const size_t index = static_cast<size_t>(current_);
+	Audio::GetInstance()->SetVolume(voiceHandle_, kEntries[index].volume * SoundSettings::GetBgmScale());
 }
 
 void BgmPlayer::Stop() {

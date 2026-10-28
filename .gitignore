@@ -363,3 +363,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# ゲームで変えた音量の保存ファイル
+sound_settings.txt
