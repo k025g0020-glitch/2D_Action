@@ -11,6 +11,8 @@ using namespace KamataEngine;
 TitleScene::~TitleScene() {
 	// フェードの解放
 	delete fade_;
+	delete logo_;
+	delete logoGlow_;
 }
 
 void TitleScene::Initialize() {
@@ -21,6 +23,10 @@ void TitleScene::Initialize() {
 	// フェードの生成と初期化
 	fade_ = new Fade();
 	fade_->Initialize();
+
+	// タイトルロゴ
+	logoGlow_ = Sprite::Create(TextureManager::Load("title/logo_glow.png"), kLogoPosition);
+	logo_ = Sprite::Create(TextureManager::Load("title/logo.png"), kLogoPosition);
 
 	text_.Initialize(320);
 	blinkTimer_ = 0.0f;
@@ -59,6 +65,16 @@ void TitleScene::Update() {
 	CameraController::ApplyOrthographic(&camera_);
 	cityBackground_.Update();
 
+	// ロゴをゆっくり上下に浮かせ、ネオンの光を明るくしたり暗くしたりする（ときどき一瞬ちらつく）
+	const Vector2 logoPosition = {kLogoPosition.x, kLogoPosition.y + std::sin(blinkTimer_ * kLogoFloatSpeed) * kLogoFloatHeight};
+	logo_->SetPosition(logoPosition);
+	logoGlow_->SetPosition(logoPosition);
+	float glow = 0.75f + 0.25f * std::sin(blinkTimer_ * 3.0f);
+	if (std::fmod(blinkTimer_, 4.0f) > 3.85f) {
+		glow *= 0.4f;
+	}
+	logoGlow_->SetColor({1.0f, 1.0f, 1.0f, glow});
+
 	switch (phase_) {
 	case Phase::kFadeIn:
 		// フェードインが終了したらメインフェーズへ移行
@@ -92,6 +108,11 @@ void TitleScene::Draw() {
 	Model::PreDraw();
 	cityBackground_.Draw();
 	Model::PostDraw();
+
+	Sprite::PreDraw();
+	logoGlow_->Draw();
+	logo_->Draw();
+	Sprite::PostDraw();
 
 	text_.Clear();
 	if (isSoundMenuOpen_) {

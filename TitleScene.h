@@ -54,6 +54,14 @@ private:
 	static inline const float kCityWidth = 300.0f;
 	static inline const float kCameraStartX = 13.0f;
 
+	// タイトルロゴ「星屑ランナー」：文字本体と、まわりのネオンの光
+	// 光は明るさを揺らし、ロゴ全体はゆっくり上下に浮かせる
+	KamataEngine::Sprite* logo_ = nullptr;
+	KamataEngine::Sprite* logoGlow_ = nullptr;
+	static inline const KamataEngine::Vector2 kLogoPosition = {120.0f, 30.0f};
+	static inline const float kLogoFloatHeight = 6.0f;
+	static inline const float kLogoFloatSpeed = 1.6f;
+
 	// 操作説明などの文字
 	BitmapText text_;
 	float blinkTimer_ = 0.0f;
