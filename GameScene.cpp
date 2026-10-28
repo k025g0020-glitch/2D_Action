@@ -33,7 +33,9 @@ void GameScene::Initialize(GameSession* session) {
 	modelGrenade_ = Model::CreateFromOBJ("grenade", true);
 	// 足場：街の屋上らしいコンクリートと鉄骨のブロック
 	modelBlock_ = Model::CreateFromOBJ("cityblock", true);
-	modelDeathParticle_ = Model::CreateFromOBJ("deathParticle", true);
+	// ミスした時の演出：砕けた欠片と、広がるネオンの輪
+	modelDeathShard_ = Model::CreateFromOBJ("deathShard", true);
+	modelDeathRing_ = Model::CreateFromOBJ("deathRing", true);
 	modelGoalStar_ = Model::CreateFromOBJ("star", true);
 	modelBeam_ = Model::CreateFromOBJ("beam", true);
 	modelSmoke_ = Model::CreateFromOBJ("smoke", true);
@@ -315,7 +317,7 @@ void GameScene::StartDeath() {
 	deathParticlesPosition.y = std::max(deathParticlesPosition.y, 0.5f);
 
 	deathParticles_ = new DeathParticles();
-	deathParticles_->Initialize(modelDeathParticle_, &camera_, deathParticlesPosition);
+	deathParticles_->Initialize(modelDeathShard_, modelDeathRing_, &camera_, deathParticlesPosition);
 }
 
 void GameScene::EmitPlayerEffects() {
@@ -858,7 +860,8 @@ GameScene::~GameScene() {
 	delete modelRobotHead_;
 	delete modelRobotBeacon_;
 	delete modelGrenade_;
-	delete modelDeathParticle_;
+	delete modelDeathShard_;
+	delete modelDeathRing_;
 	delete goalStar_;
 	delete modelGoalStar_;
 	delete modelBeam_;

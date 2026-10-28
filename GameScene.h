@@ -126,7 +126,8 @@ private:
 	KamataEngine::Model* modelInvincibleEnemy_ = nullptr;
 	// 警備ロボットが投げる電撃グレネード
 	KamataEngine::Model* modelGrenade_ = nullptr;
-	KamataEngine::Model* modelDeathParticle_ = nullptr;
+	KamataEngine::Model* modelDeathShard_ = nullptr;
+	KamataEngine::Model* modelDeathRing_ = nullptr;
 	KamataEngine::Model* modelGoalStar_ = nullptr;
 	// ゴールの星から空へ伸びる光の柱
 	KamataEngine::Model* modelBeam_ = nullptr;
