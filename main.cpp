@@ -3,6 +3,7 @@
 #include "GameScene.h"
 #include "GameSession.h"
 #include "ResultScene.h"
+#include "SoundEffects.h"
 #include "StageIntroScene.h"
 #include "TitleScene.h"
 
@@ -171,6 +172,9 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	Initialize(L"LE2D_20_タキエ_コウガ_AL3");
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+
+	// 効果音を読み込んでおく
+	SoundEffects::Load();
 
 	StartTitle();
 

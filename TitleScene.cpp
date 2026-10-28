@@ -1,4 +1,5 @@
 #include "TitleScene.h"
+#include "SoundEffects.h"
 #include "CameraController.h"
 #include <cmath>
 
@@ -58,6 +59,7 @@ void TitleScene::Update() {
 	case Phase::kMain:
 		// スペースキーでフェードアウトフェーズへ移行
 		if (Input::GetInstance()->PushKey(DIK_SPACE)) {
+			SoundEffects::Play(SoundEffects::Id::kDecide);
 			phase_ = Phase::kFadeOut;
 			fade_->Start(Fade::Status::FadeOut, kFadeDuration);
 		}

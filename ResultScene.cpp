@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "ResultScene.h"
+#include "SoundEffects.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -55,6 +56,7 @@ void ResultScene::Update() {
 
 	case Phase::kWait:
 		if (input->TriggerKey(DIK_SPACE)) {
+			SoundEffects::Play(SoundEffects::Id::kDecide);
 			phase_ = Phase::kFadeOut;
 			fade_->Start(Fade::Status::FadeOut, kFadeDuration);
 		}

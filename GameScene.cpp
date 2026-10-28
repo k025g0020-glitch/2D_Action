@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "GameScene.h"
+#include "SoundEffects.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -282,6 +283,7 @@ void GameScene::ChangePhase() {
 void GameScene::StartDeath() {
 	// 死亡演出フェーズに切り替え
 	phase_ = Phase::kDeath;
+	SoundEffects::Play(SoundEffects::Id::kMiss);
 	result_ = Result::kMiss;
 
 	// 自キャラの座標にデスパーティクルを発生、初期化
@@ -298,6 +300,10 @@ void GameScene::EmitPlayerEffects() {
 	const float velocityX = player_->GetVelocity().x;
 
 	if (player_->HasJumped()) {
+		// 段が上がるほど高い音
+		static const SoundEffects::Id kJumpSounds[] = {SoundEffects::Id::kJump1, SoundEffects::Id::kJump2, SoundEffects::Id::kJump3};
+		const uint32_t stage = std::clamp(player_->GetJumpStage(), 1u, 3u);
+		SoundEffects::Play(kJumpSounds[stage - 1]);
 		particles_.EmitJumpDust(feet, player_->GetJumpStage());
 		// 3段目は星の輪
 		if (player_->GetJumpStage() == 3) {
@@ -324,8 +330,12 @@ void GameScene::UpdateStageObjects() {
 	// 敵の更新 (複数)
 	for (Enemy* enemy : enemies_) {
 		enemy->Update();
+		if (enemy->HasStartedWindUp()) {
+			SoundEffects::Play(SoundEffects::Id::kRobotCharge);
+		}
 		// 警備ロボットが武器を投げた
 		if (enemy->HasThrown()) {
+			SoundEffects::Play(SoundEffects::Id::kRobotThrow);
 			ShockGrenade* grenade = new ShockGrenade();
 			grenade->Initialize(modelGrenade_, &camera_, mapChipField_, enemy->GetThrowOrigin(), enemy->GetThrowTarget());
 			grenades_.push_back(grenade);
@@ -341,6 +351,7 @@ void GameScene::UpdateStageObjects() {
 			continue;
 		}
 		if (grenade->IsExploded()) {
+			SoundEffects::Play(SoundEffects::Id::kGrenadeBurst);
 			particles_.EmitShockBurst(grenade->GetPosition());
 		} else if (!grenade->IsGone() && effectFrame_ % kShockTrailInterval == 0) {
 			particles_.EmitShockTrail(grenade->GetPosition());
@@ -447,6 +458,7 @@ void GameScene::UpdatePlayPhase() {
 			continue;
 		}
 		checkpoint->Activate();
+		SoundEffects::Play(SoundEffects::Id::kCheckpoint);
 		session_->checkpointIndex = (std::max)(session_->checkpointIndex, static_cast<int32_t>(i));
 		// 旗の先から紙吹雪
 		particles_.EmitConfetti(calc::Add(checkpoint->GetPosition(), Vector3(0.4f, 1.3f, 0.0f)));
@@ -458,8 +470,12 @@ void GameScene::UpdatePlayPhase() {
 		player_->Die();
 	}
 
-	// 残り時間を減らし、0になったらミス
+	// 残り時間を減らし、0になったらミス。少なくなった時に一度だけ警告音を鳴らす
+	const bool wasHurry = remainingTime_ <= kHurryTime;
 	remainingTime_ = std::max(remainingTime_ - 1.0f / 60.0f, 0.0f);
+	if (!wasHurry && remainingTime_ <= kHurryTime) {
+		SoundEffects::Play(SoundEffects::Id::kHurry);
+	}
 	if (remainingTime_ <= 0.0f) {
 		player_->Die();
 	}
@@ -467,6 +483,7 @@ void GameScene::UpdatePlayPhase() {
 	// 星を獲得したらゴール
 	if (!player_->IsDead() && IsGoalReached()) {
 		goalStar_->Collect();
+		SoundEffects::Play(SoundEffects::Id::kGoal);
 		{
 			const AABB starAABB = goalStar_->GetAABB();
 			const Vector3 starCenter = {(starAABB.min.x + starAABB.max.x) * 0.5f, (starAABB.min.y + starAABB.max.y) * 0.5f, 0.0f};
@@ -617,8 +634,10 @@ void GameScene::AddStompScore(const Vector3& position) {
 		const uint32_t score = kStompScores[stompCombo_ - 1];
 		session_->AddScore(score);
 		AddPopup(position, std::to_string(score));
+		SoundEffects::Play(SoundEffects::Id::kStomp);
 	} else {
 		// 得点表を超えて踏み続けたら1UP
+		SoundEffects::Play(SoundEffects::Id::kOneUp);
 		session_->AddLife();
 		AddPopup(position, "1UP");
 	}
@@ -695,6 +714,7 @@ void GameScene::CheckAllCollisions() {
 			continue;
 		}
 		grenade->Explode();
+		SoundEffects::Play(SoundEffects::Id::kGrenadeBurst);
 		particles_.EmitShockBurst(grenade->GetPosition());
 		player_->OnCollision(nullptr);
 	}
@@ -709,6 +729,7 @@ void GameScene::CheckAllCollisions() {
 		}
 
 		coin->Collect();
+		SoundEffects::Play(SoundEffects::Id::kCoin);
 		{
 			const AABB coinAABB = coin->GetAABB();
 			const Vector3 coinCenter = {(coinAABB.min.x + coinAABB.max.x) * 0.5f, (coinAABB.min.y + coinAABB.max.y) * 0.5f, 0.0f};
@@ -718,6 +739,7 @@ void GameScene::CheckAllCollisions() {
 		session_->AddScore(kCoinScore);
 		// 100枚集めたら1UP
 		if (session_->AddCoin()) {
+			SoundEffects::Play(SoundEffects::Id::kOneUp);
 			AddPopup(player_->GetWorldPosition(), "1UP");
 		}
 	}

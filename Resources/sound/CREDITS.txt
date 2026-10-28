@@ -1,0 +1,24 @@
+効果音の出どころ
+（WAV は 44100Hz・ステレオ・16bit に変換し、前後の無音を削って音量をそろえたもの）
+
+■ Kenney（www.kenney.nl） CC0 / クレジット表記は任意
+  Digital SFX Set
+    coin.wav          ← powerUp2
+    oneup.wav         ← powerUp3
+    miss.wav          ← zapThreeToneDown
+    checkpoint.wav    ← threeTone1
+    goal.wav          ← powerUp1
+    hurry.wav         ← lowThreeTone
+    grenade_burst.wav ← zap2
+  Sci-Fi Sounds
+    stomp.wav         ← impactMetal_002
+    robot_charge.wav  ← forceField_000
+    robot_throw.wav   ← laserSmall_003
+  Interface Sounds
+    decide.wav        ← confirmation_002
+
+■ ジャンプ音素材集（family-jump / 8bit）
+    jump1.wav ← 8bit/jump/jump_07
+    jump2.wav ← 8bit/jump/jump_08
+    jump3.wav ← 8bit/jump/jump_15
+  ※ 配布元の利用規約に従うこと

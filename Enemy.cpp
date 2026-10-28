@@ -224,6 +224,7 @@ Vector3 Enemy::GetWeaponHoldPosition() const {
 void Enemy::UpdateThrowing() {
 	constexpr float kDeltaTime = 1.0f / 60.0f;
 	hasThrown_ = false;
+	hasStartedWindUp_ = false;
 
 	const Vector3& position = worldTransform_.translation_;
 	const float dx = throwTarget_.x - position.x;
@@ -257,6 +258,7 @@ void Enemy::UpdateThrowing() {
 		throwCooldown_ -= kDeltaTime;
 		if (throwCooldown_ <= 0.0f) {
 			windUpTimer_ = 0.0f;
+			hasStartedWindUp_ = true;
 		}
 	} else {
 		// 範囲の外にいる間は、入ってきてから少し待って構える

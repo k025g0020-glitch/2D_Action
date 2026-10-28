@@ -37,7 +37,8 @@ public:
 		throwTarget_ = target;
 		hasThrowTarget_ = true;
 	}
-	// このフレームに武器を投げた
+	// このフレームに武器を構えた・投げた
+	bool HasStartedWindUp() const { return hasStartedWindUp_; }
 	bool HasThrown() const { return hasThrown_; }
 	// 投げた武器が出る位置と、狙った位置
 	const KamataEngine::Vector3& GetThrowOrigin() const { return throwOrigin_; }
@@ -292,4 +293,5 @@ private:
 	// 投げた後に前へ振る動きの残り（1 → 0）
 	float throwRecoil_ = 0.0f;
 	bool hasThrown_ = false;
+	bool hasStartedWindUp_ = false;
 };
