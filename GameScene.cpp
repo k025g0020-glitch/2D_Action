@@ -479,6 +479,8 @@ void GameScene::UpdatePlayPhase() {
 	remainingTime_ = std::max(remainingTime_ - 1.0f / 60.0f, 0.0f);
 	if (!wasHurry && remainingTime_ <= kHurryTime) {
 		SoundEffects::Play(SoundEffects::Id::kHurry);
+		// 曲も緊迫したものに切り替える
+		BgmPlayer::Play(BgmPlayer::Id::kHurry);
 	}
 	if (remainingTime_ <= 0.0f) {
 		player_->Die();

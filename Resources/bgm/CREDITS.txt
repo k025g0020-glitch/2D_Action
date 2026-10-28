@@ -1,11 +1,16 @@
 BGM の出どころ
 （WAV は 44100Hz・ステレオ・16bit。前後の無音を削り、つなぎ目を 10ms だけフェードしたもの）
 
-stage2.wav ← 「サイバー43」 魔王魂（森田交一） https://maou.audio/
-result.wav ← 「サイバー19」 魔王魂（森田交一） https://maou.audio/
-  ※ 魔王魂の曲は、クレジット画面や README などに「音楽：魔王魂」と書いておくこと
+title.wav    ← 「Cyberpunk City」 Eric Matyas  www.soundimage.org
+               ※ クレジット表記が必要："Cyberpunk City" by Eric Matyas www.soundimage.org
+stage1.wav   ← 「Cyber Active」 MFP【Marron Fields Production】 OpenTracks（旧DOVA-SYNDROME）
+stage2.wav   ← 「サイバー43」 魔王魂（森田交一） https://maou.audio/
+stage3.wav   ← 「Cyber Battle 1」 MAKOOTO OpenTracks（旧DOVA-SYNDROME）
+hurry.wav    ← 「サイバーバトル（Cyber Battle）」 shimtone OpenTracks（旧DOVA-SYNDROME）
+result.wav   ← 「サイバー13」 魔王魂（森田交一） https://maou.audio/
+allclear.wav ← 「Friendly Talk On a Robotic Battlefield」 OpenGameArt（CC0、表記は不要）
+gameover.wav ← 「サイバー19」 魔王魂（森田交一） https://maou.audio/
 
-stage1.wav ← 「Cyber Active」 MFP【Marron Fields Production】 OpenTracks（旧DOVA-SYNDROME） https://opentracks.com/
-stage3.wav ← OpenTracks の曲（元のファイル名が文字化けしていたため曲名は要確認。BPM 約160）
-title.wav  ← 元のファイル名が文字化けしていたため曲名は要確認（BPM 約148）
-  ※ OpenTracks の曲はクレジット表記不要（作曲者ごとの追加の条件がないかは曲のページで確認）
+※ 魔王魂の曲は、クレジット画面や README などに「音楽：魔王魂」と書いておくこと
+※ OpenTracks の曲はクレジット表記不要（作曲者ごとの追加の条件がないかは曲のページで確認）
+※ 「Cyber Field」（shimtone）は以前タイトルに使っていたが、今は使っていない

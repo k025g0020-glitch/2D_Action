@@ -19,11 +19,13 @@ void ResultScene::Initialize(GameSession* session, Type type) {
 	session_ = session;
 	type_ = type;
 
-	// クリアした時は曲を流し、ゲームオーバーは静かにする
-	if (type_ == Type::kStageClear) {
-		BgmPlayer::Play(BgmPlayer::Id::kResult);
+	// クリア（最後のステージなら全クリア）とゲームオーバーで曲を変える
+	if (type_ == Type::kGameOver) {
+		BgmPlayer::Play(BgmPlayer::Id::kGameOver);
+	} else if (session_->IsLastStage()) {
+		BgmPlayer::Play(BgmPlayer::Id::kAllClear);
 	} else {
-		BgmPlayer::Stop();
+		BgmPlayer::Play(BgmPlayer::Id::kResult);
 	}
 
 	// 画面全体を黒で塗りつぶす

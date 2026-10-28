@@ -11,8 +11,11 @@ public:
 		kTitle,  // タイトル
 		kStage1, // ステージ1
 		kStage2, // ステージ2
-		kStage3, // ステージ3
-		kResult, // ステージクリアのリザルト
+		kStage3,   // ステージ3
+		kHurry,    // 残り時間が少なくなった時（ステージの曲から切り替える）
+		kResult,   // ステージクリアのリザルト
+		kAllClear, // 最後のステージをクリアした時のリザルト
+		kGameOver, // ゲームオーバー
 		kCount,
 		kNone = kCount,
 	};
@@ -33,11 +36,14 @@ private:
 
 	// Id と同じ順番に並べる
 	static inline const Entry kEntries[] = {
-	    {"bgm/title.wav", 0.49f},
+	    {"bgm/title.wav", 0.6f},
 	    {"bgm/stage1.wav", 0.39f},
 	    {"bgm/stage2.wav", 0.34f},
 	    {"bgm/stage3.wav", 0.32f},
-	    {"bgm/result.wav", 0.36f},
+	    {"bgm/hurry.wav", 0.23f},
+	    {"bgm/result.wav", 0.35f},
+	    {"bgm/allclear.wav", 0.16f},
+	    {"bgm/gameover.wav", 0.36f},
 	};
 	static_assert(std::size(kEntries) == static_cast<size_t>(Id::kCount), "kEntries と Id の数をそろえる");
 
