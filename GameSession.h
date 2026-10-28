@@ -6,15 +6,14 @@
 struct StageInfo {
 	const char* csvPath;        // マップCSVのパス
 	uint32_t timeLimit;         // 制限時間（秒）
-	const char* name;           // ステージ紹介画面に出す街の名前
 	const char* hint = nullptr; // ステージ紹介画面に出すヒント（なくてもよい）
 };
 
 // 夜の街のビル群を駆け抜けて、空の星を目指す
 inline constexpr std::array<StageInfo, 3> kStages = {{
-    {"Resources/stage1.csv", 240, "繁華街", "SHIFTを押しながら 3回続けてジャンプしよう！"},
-    {"Resources/stage2.csv", 270, "屋上の階段", "屋上の階段を 三段ジャンプで駆け上がれ！"},
-    {"Resources/stage3.csv", 300, "摩天楼", "ダッシュで屋上を駆け抜けろ。落ちるな！"},
+    {"Resources/stage1.csv", 240, "SHIFTを押しながら 3回続けてジャンプしよう！"},
+    {"Resources/stage2.csv", 270, "屋上の階段を 三段ジャンプで駆け上がれ！"},
+    {"Resources/stage3.csv", 300, "ダッシュで屋上を駆け抜けろ。落ちるな！"},
 }};
 
 // クリアしたステージの結果

@@ -187,7 +187,8 @@ void DrawScene() {
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	
-	Initialize(L"LE2D_20_タキエ_コウガ_AL3");
+	// ウィンドウのタイトル
+	Initialize(L"星屑ランナー");
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 

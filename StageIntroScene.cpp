@@ -1,5 +1,6 @@
 #include "StageIntroScene.h"
 #include "BgmPlayer.h"
+#include "GameScene.h"
 #include <cassert>
 #include <cstdio>
 
@@ -37,20 +38,24 @@ void StageIntroScene::Draw() {
 	background_->Draw();
 	Sprite::PostDraw();
 
-	char buffer[64];
+	char buffer[128];
 
 	text_.Clear();
 
 	std::snprintf(buffer, sizeof(buffer), "ステージ %u", session_->stageIndex + 1);
 	text_.Print(buffer, 640.0f, 220.0f, 64.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
-	// 街の名前
-	text_.Print(session_->GetStage().name, 640.0f, 300.0f, 32.0f, {1.0f, 0.75f, 0.45f, 1.0f}, BitmapText::Align::kCenter);
-
 	std::snprintf(buffer, sizeof(buffer), "残機 × %d", session_->lives);
-	text_.Print(buffer, 640.0f, 380.0f, 40.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+	text_.Print(buffer, 640.0f, 320.0f, 40.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+
+	// 残機が増える条件
+	const Vector4 kGray = {0.75f, 0.78f, 0.85f, 1.0f};
+	std::snprintf(buffer, sizeof(buffer), "コインを%u枚集めると 残機+1", GameSession::kCoinsForExtraLife);
+	text_.Print(buffer, 640.0f, 380.0f, 26.0f, kGray, BitmapText::Align::kCenter);
+	std::snprintf(buffer, sizeof(buffer), "着地せずに敵を%u体続けて踏むと 残機+1", GameScene::StompsForExtraLife());
+	text_.Print(buffer, 640.0f, 416.0f, 26.0f, kGray, BitmapText::Align::kCenter);
 
 	if (session_->HasCheckpoint()) {
-		text_.Print("中間ポイントから再開", 640.0f, 450.0f, 28.0f, {1.0f, 0.5f, 0.4f, 1.0f}, BitmapText::Align::kCenter);
+		text_.Print("中間ポイントから再開", 640.0f, 470.0f, 28.0f, {1.0f, 0.5f, 0.4f, 1.0f}, BitmapText::Align::kCenter);
 	}
 
 	// ステージごとのヒント

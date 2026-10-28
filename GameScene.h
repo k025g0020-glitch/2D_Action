@@ -49,6 +49,9 @@ public:
 	bool IsFinished() const { return finished_; }
 	Result GetResult() const { return result_; }
 
+	// 着地せずに何体続けて敵を踏むと 1UP するか（得点表を超えて踏んだ時）
+	static constexpr uint32_t StompsForExtraLife() { return static_cast<uint32_t>(std::size(kStompScores)) + 1; }
+
 private:
 	// 画面に一瞬表示される得点などの文字
 	struct ScorePopup {
