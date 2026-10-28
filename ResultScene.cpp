@@ -48,7 +48,7 @@ void ResultScene::Initialize(GameSession* session, Type type) {
 	choices_.push_back(Choice::kRetry);
 	rows.push_back({VolumeMenu::RowType::kAction, "再挑戦"});
 	choices_.push_back(Choice::kQuit);
-	rows.push_back({VolumeMenu::RowType::kAction, "終了"});
+	rows.push_back({VolumeMenu::RowType::kAction, "タイトルへ戻る"});
 	menu_.Initialize(rows);
 	menu_.Open(0);
 	choice_ = Choice::kQuit;

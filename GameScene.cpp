@@ -111,7 +111,7 @@ void GameScene::Initialize(GameSession* session) {
 	pauseMenu_.Initialize({
 	    {VolumeMenu::RowType::kAction, "再開"},
 	    {VolumeMenu::RowType::kAction, "再挑戦"},
-	    {VolumeMenu::RowType::kAction, "終了"},
+	    {VolumeMenu::RowType::kAction, "タイトルへ戻る"},
 	    {VolumeMenu::RowType::kBgm, "音楽"},
 	    {VolumeMenu::RowType::kSe, "効果音"},
 	});
