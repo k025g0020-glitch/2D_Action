@@ -2,6 +2,7 @@
 #include "KamataEngine.h"
 #include "GameScene.h"
 #include "GameSession.h"
+#include "BgmPlayer.h"
 #include "ResultScene.h"
 #include "SoundEffects.h"
 #include "StageIntroScene.h"
@@ -173,7 +174,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	// 効果音を読み込んでおく
+	// BGM と効果音を読み込んでおく
+	BgmPlayer::Load();
 	SoundEffects::Load();
 
 	StartTitle();

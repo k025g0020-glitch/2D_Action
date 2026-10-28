@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "GameScene.h"
+#include "BgmPlayer.h"
 #include "SoundEffects.h"
 #include <algorithm>
 #include <cassert>
@@ -12,6 +13,8 @@ using namespace KamataEngine;
 void GameScene::Initialize(GameSession* session) {
 	assert(session);
 	session_ = session;
+
+	BgmPlayer::Play(BgmPlayer::StageBgm(session_->stageIndex));
 
 	// プレイヤー：フードとバイザーの、街を駆けるランナー
 	model_ = Model::CreateFromOBJ("runner", true);
@@ -283,6 +286,7 @@ void GameScene::ChangePhase() {
 void GameScene::StartDeath() {
 	// 死亡演出フェーズに切り替え
 	phase_ = Phase::kDeath;
+	BgmPlayer::Stop();
 	SoundEffects::Play(SoundEffects::Id::kMiss);
 	result_ = Result::kMiss;
 
@@ -483,6 +487,7 @@ void GameScene::UpdatePlayPhase() {
 	// 星を獲得したらゴール
 	if (!player_->IsDead() && IsGoalReached()) {
 		goalStar_->Collect();
+		BgmPlayer::Stop();
 		SoundEffects::Play(SoundEffects::Id::kGoal);
 		{
 			const AABB starAABB = goalStar_->GetAABB();

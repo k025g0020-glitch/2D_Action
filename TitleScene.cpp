@@ -1,4 +1,5 @@
 #include "TitleScene.h"
+#include "BgmPlayer.h"
 #include "SoundEffects.h"
 #include "CameraController.h"
 #include <cmath>
@@ -12,6 +13,8 @@ TitleScene::~TitleScene() {
 
 void TitleScene::Initialize() {
 	finished_ = false;
+
+	BgmPlayer::Play(BgmPlayer::Id::kTitle);
 
 	// フェードの生成と初期化
 	fade_ = new Fade();

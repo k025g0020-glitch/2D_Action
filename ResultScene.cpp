@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "ResultScene.h"
+#include "BgmPlayer.h"
 #include "SoundEffects.h"
 #include <algorithm>
 #include <cassert>
@@ -17,6 +18,13 @@ void ResultScene::Initialize(GameSession* session, Type type) {
 	assert(session);
 	session_ = session;
 	type_ = type;
+
+	// クリアした時は曲を流し、ゲームオーバーは静かにする
+	if (type_ == Type::kStageClear) {
+		BgmPlayer::Play(BgmPlayer::Id::kResult);
+	} else {
+		BgmPlayer::Stop();
+	}
 
 	// 画面全体を黒で塗りつぶす
 	background_ = Sprite::Create(TextureManager::Load("white1x1.png"), {0.0f, 0.0f});

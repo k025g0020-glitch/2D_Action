@@ -1,0 +1,11 @@
+BGM の出どころ
+（WAV は 44100Hz・ステレオ・16bit。前後の無音を削り、つなぎ目を 10ms だけフェードしたもの）
+
+stage2.wav ← 「サイバー43」 魔王魂（森田交一） https://maou.audio/
+result.wav ← 「サイバー19」 魔王魂（森田交一） https://maou.audio/
+  ※ 魔王魂の曲は、クレジット画面や README などに「音楽：魔王魂」と書いておくこと
+
+stage1.wav ← 「Cyber Active」 MFP【Marron Fields Production】 OpenTracks（旧DOVA-SYNDROME） https://opentracks.com/
+stage3.wav ← OpenTracks の曲（元のファイル名が文字化けしていたため曲名は要確認。BPM 約160）
+title.wav  ← 元のファイル名が文字化けしていたため曲名は要確認（BPM 約148）
+  ※ OpenTracks の曲はクレジット表記不要（作曲者ごとの追加の条件がないかは曲のページで確認）

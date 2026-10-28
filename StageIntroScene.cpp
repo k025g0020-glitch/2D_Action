@@ -1,4 +1,5 @@
 #include "StageIntroScene.h"
+#include "BgmPlayer.h"
 #include <cassert>
 #include <cstdio>
 
@@ -9,6 +10,9 @@ StageIntroScene::~StageIntroScene() { delete background_; }
 void StageIntroScene::Initialize(const GameSession* session) {
 	assert(session);
 	session_ = session;
+
+	// ステージ名を見せる間は曲を止めて、ゲームが始まったらステージの曲を流す
+	BgmPlayer::Stop();
 
 	// 画面全体を黒で塗りつぶす
 	background_ = Sprite::Create(TextureManager::Load("white1x1.png"), {0.0f, 0.0f});
