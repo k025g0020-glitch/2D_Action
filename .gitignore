@@ -76,6 +76,8 @@ StyleCopReport.xml
 *.ilk
 *.meta
 *.obj
+# ただし Resources の中の .obj は3Dモデルなので含める
+!Resources/**/*.obj
 *.iobj
 *.pch
 *.pdb
