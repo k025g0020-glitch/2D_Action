@@ -44,7 +44,37 @@ struct GameSession {
 
 	StageResult lastStageResult;
 
+	// ステージを始めた時の残機・スコア・コイン（再挑戦した時にこの値に戻す）
+	struct StageStart {
+		int32_t lives = kInitialLives;
+		uint32_t score = 0;
+		uint32_t coins = 0;
+	};
+	StageStart stageStart;
+
 	void Reset() { *this = GameSession(); }
+
+	// 新しいステージを始める時に呼ぶ（中間ポイントを消し、再挑戦用に今の状態を覚えておく）
+	void StartNewStage() {
+		checkpointIndex = -1;
+		isRespawn = false;
+		stageStart = {lives, score, coins};
+	}
+
+	// 同じステージを最初からやり直す。スコアとコインはステージを始めた時に戻す
+	// 残機は、ゲームオーバーからなら最初の数に戻し、それ以外はステージを始めた時より増やさない
+	// （クリアした後の再挑戦で、1UP やスコアを何度も稼げないようにする）
+	void RestartStage(bool fromGameOver) {
+		score = stageStart.score;
+		coins = stageStart.coins;
+		lives = fromGameOver ? kInitialLives : (lives < stageStart.lives ? lives : stageStart.lives);
+		if (lives <= 0) {
+			lives = 1;
+		}
+		stageStart.lives = lives;
+		checkpointIndex = -1;
+		isRespawn = false;
+	}
 
 	const StageInfo& GetStage() const { return kStages[stageIndex]; }
 	bool IsLastStage() const { return stageIndex + 1 >= kStages.size(); }

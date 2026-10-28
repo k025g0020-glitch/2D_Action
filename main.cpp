@@ -73,6 +73,7 @@ void ChangeScene() {
 			titleScene = nullptr;
 			// 新しくゲームを始める
 			gameSession.Reset();
+			gameSession.StartNewStage();
 			StartStageIntro();
 		}
 		break;
@@ -93,6 +94,13 @@ void ChangeScene() {
 
 			if (result == GameScene::Result::kCleared) {
 				StartResult(ResultScene::Type::kStageClear);
+			} else if (result == GameScene::Result::kRetry) {
+				// ポーズから再挑戦：同じステージを最初から
+				gameSession.RestartStage(false);
+				StartStageIntro();
+			} else if (result == GameScene::Result::kQuit) {
+				// ポーズから終了：タイトルに戻る
+				StartTitle();
 			} else {
 				// ミスしたら残機を減らす
 				--gameSession.lives;
@@ -108,17 +116,25 @@ void ChangeScene() {
 
 	case Scene::kResult:
 		if (resultScene->IsFinished()) {
+			const ResultScene::Choice choice = resultScene->GetChoice();
 			delete resultScene;
 			resultScene = nullptr;
 
-			// ゲームオーバーか最終ステージクリアならタイトルへ、それ以外は次のステージへ
-			if (gameSession.lives <= 0 || gameSession.IsLastStage()) {
-				StartTitle();
-			} else {
+			// 結果画面で選んだことに合わせて、次のステージ・再挑戦・タイトルへ
+			switch (choice) {
+			case ResultScene::Choice::kNextStage:
 				++gameSession.stageIndex;
-				gameSession.checkpointIndex = -1;
-				gameSession.isRespawn = false;
+				gameSession.StartNewStage();
 				StartStageIntro();
+				break;
+			case ResultScene::Choice::kRetry:
+				// ゲームオーバーからの再挑戦は残機を最初の数に戻す
+				gameSession.RestartStage(gameSession.lives <= 0);
+				StartStageIntro();
+				break;
+			case ResultScene::Choice::kQuit:
+				StartTitle();
+				break;
 			}
 		}
 		break;

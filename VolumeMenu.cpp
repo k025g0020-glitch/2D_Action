@@ -26,62 +26,82 @@ std::string VolumeBar(int level) {
 }
 } // namespace
 
-void VolumeMenu::Open(bool selectClose) { item_ = selectClose ? Item::kClose : Item::kBgm; }
+void VolumeMenu::Initialize(const std::vector<Row>& rows) {
+	rows_ = rows;
+	selected_ = 0;
+}
 
-bool VolumeMenu::Update() {
-	const Item previous = item_;
-	item_ = MenuInput::SelectItem(item_);
-	if (item_ != previous) {
+void VolumeMenu::Open(int selectedRow) { selected_ = selectedRow; }
+
+int VolumeMenu::Update() {
+	Input* input = Input::GetInstance();
+	const int count = static_cast<int>(rows_.size());
+
+	// W / S で上下に選ぶ（端まで行ったら反対側に回る）
+	const int previous = selected_;
+	if (input->TriggerKey(DIK_W) || input->TriggerKey(DIK_UP)) {
+		selected_ = (selected_ + count - 1) % count;
+	}
+	if (input->TriggerKey(DIK_S) || input->TriggerKey(DIK_DOWN)) {
+		selected_ = (selected_ + 1) % count;
+	}
+	if (selected_ != previous) {
 		SoundEffects::Play(SoundEffects::Id::kCoin);
 	}
 
+	const Row& row = rows_[selected_];
 	// A / D で音量を1段ずつ変える
 	const int direction = MenuInput::Horizontal();
-	if (direction != 0) {
-		if (item_ == Item::kBgm) {
-			SoundSettings::SetBgmLevel(SoundSettings::GetBgmLevel() + direction);
-			// 流れている曲の音量をすぐ変えて、大きさを確かめられるようにする
-			BgmPlayer::RefreshVolume();
-		} else if (item_ == Item::kSe) {
-			SoundSettings::SetSeLevel(SoundSettings::GetSeLevel() + direction);
-			// 効果音を鳴らして大きさを確かめられるようにする
-			SoundEffects::Play(SoundEffects::Id::kCoin);
+	if (direction != 0 && row.type == RowType::kBgm) {
+		SoundSettings::SetBgmLevel(SoundSettings::GetBgmLevel() + direction);
+		// 流れている曲の音量をすぐ変えて、大きさを確かめられるようにする
+		BgmPlayer::RefreshVolume();
+	} else if (direction != 0 && row.type == RowType::kSe) {
+		SoundSettings::SetSeLevel(SoundSettings::GetSeLevel() + direction);
+		// 効果音を鳴らして大きさを確かめられるようにする
+		SoundEffects::Play(SoundEffects::Id::kCoin);
+	}
+
+	if (row.type == RowType::kAction && MenuInput::Decide()) {
+		SoundSettings::Save();
+		SoundEffects::Play(SoundEffects::Id::kDecide);
+		return selected_;
+	}
+	return -1;
+}
+
+void VolumeMenu::Draw(BitmapText& text, const char* title, float top, float blinkTimer, bool showHint) const {
+	text.Print(title, 640.0f, top, 44.0f, kWhite, BitmapText::Align::kCenter);
+
+	constexpr float kCharSize = 36.0f;
+	constexpr float kVolumeRowX = 280.0f;
+	bool hasVolume = false;
+	for (size_t i = 0; i < rows_.size(); ++i) {
+		const Row& row = rows_[i];
+		const bool selected = static_cast<int>(i) == selected_;
+		const float y = top + 80.0f + kRowSpacing * static_cast<float>(i);
+		const Vector4& color = selected ? kYellow : kWhite;
+
+		if (row.type == RowType::kAction) {
+			// 決定する項目は、選んでいる時に矢印を点滅させる
+			std::string label = row.label;
+			if (selected && std::fmod(blinkTimer, 1.0f) < 0.6f) {
+				label = "> " + label + " <";
+			}
+			text.Print(label, 640.0f, y, kCharSize, color, BitmapText::Align::kCenter);
+		} else {
+			hasVolume = true;
+			const int level = (row.type == RowType::kBgm) ? SoundSettings::GetBgmLevel() : SoundSettings::GetSeLevel();
+			char name[8];
+			std::snprintf(name, sizeof(name), "%-3s", row.label);
+			const std::string line = std::string(selected ? "> " : "  ") + name + "  " + VolumeBar(level);
+			text.Print(line, kVolumeRowX, y, kCharSize, color);
 		}
 	}
 
-	if (item_ == Item::kClose && MenuInput::Decide()) {
-		SoundSettings::Save();
-		SoundEffects::Play(SoundEffects::Id::kDecide);
-		return true;
+	if (!showHint) {
+		return;
 	}
-	return false;
-}
-
-void VolumeMenu::Draw(BitmapText& text, const char* title, const char* closeLabel, float top, float blinkTimer) const {
-	text.Print(title, 640.0f, top, 44.0f, kWhite, BitmapText::Align::kCenter);
-
-	const struct {
-		const char* label;
-		int level;
-	} kRows[] = {
-	    {"BGM", SoundSettings::GetBgmLevel()},
-	    {"SE ", SoundSettings::GetSeLevel()},
-	};
-	constexpr float kRowX = 280.0f;
-	for (int i = 0; i < 2; ++i) {
-		const bool selected = static_cast<int>(item_) == i;
-		const std::string row = std::string(selected ? "> " : "  ") + kRows[i].label + "  " + VolumeBar(kRows[i].level);
-		text.Print(row, kRowX, top + 80.0f + 56.0f * i, 36.0f, selected ? kYellow : kWhite);
-	}
-
-	// 閉じる項目は、選んでいる時に矢印を点滅させる
-	const bool closeSelected = item_ == Item::kClose;
-	std::string close = closeLabel;
-	if (closeSelected && std::fmod(blinkTimer, 1.0f) < 0.6f) {
-		close = "> " + close + " <";
-	}
-	text.Print(close, 640.0f, top + 210.0f, 36.0f, closeSelected ? kYellow : kWhite, BitmapText::Align::kCenter);
-
-	std::string hint = std::string("W / S : SELECT   A / D : VOLUME   SPACE : ") + closeLabel;
-	text.Print(hint, 640.0f, top + 290.0f, 24.0f, kGray, BitmapText::Align::kCenter);
+	const float hintY = top + 80.0f + kRowSpacing * static_cast<float>(rows_.size()) + 24.0f;
+	text.Print(hasVolume ? "W / S : SELECT   A / D : VOLUME   SPACE : OK" : "W / S : SELECT   SPACE : OK", 640.0f, hintY, 24.0f, kGray, BitmapText::Align::kCenter);
 }

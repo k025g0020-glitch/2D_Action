@@ -3,6 +3,8 @@
 #include "Fade.h"
 #include "GameSession.h"
 #include "KamataEngine.h"
+#include "VolumeMenu.h"
+#include <vector>
 
 // ステージクリア時の結果画面・ゲームオーバー画面
 class ResultScene {
@@ -12,6 +14,13 @@ public:
 		kGameOver,   // ゲームオーバー
 	};
 
+	// 結果画面で選んだこと
+	enum class Choice {
+		kNextStage, // 次のステージへ
+		kRetry,     // 同じステージにもう一度挑戦する
+		kQuit,      // タイトルに戻る
+	};
+
 	~ResultScene();
 
 	void Initialize(GameSession* session, Type type);
@@ -19,6 +28,7 @@ public:
 	void Draw();
 
 	bool IsFinished() const { return finished_; }
+	Choice GetChoice() const { return choice_; }
 
 private:
 	enum class Phase {
@@ -49,4 +59,9 @@ private:
 
 	float blinkTimer_ = 0.0f;
 	bool finished_ = false;
+
+	// 入力待ちの間に出すメニューと、各行で選べること
+	VolumeMenu menu_;
+	std::vector<Choice> choices_;
+	Choice choice_ = Choice::kQuit;
 };

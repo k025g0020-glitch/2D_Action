@@ -34,6 +34,8 @@ public:
 		kNone,    // まだ終わっていない
 		kCleared, // ゴールした
 		kMiss,    // ミス（敵に当たる・穴に落ちる・時間切れ）
+		kRetry,   // ポーズから再挑戦を選んだ
+		kQuit,    // ポーズから終了を選んだ（タイトルに戻る）
 	};
 
 	// session : 残機・スコアなどゲーム全体で引き継ぐ情報
@@ -56,7 +58,7 @@ private:
 	};
 
 	void UpdatePlayPhase();
-	// 一時停止（P キー）。一時停止中は true を返し、ゲームの更新を止める
+	// 一時停止（ESC キー）。一時停止中は true を返し、ゲームの更新を止める
 	bool UpdatePause();
 	void DrawPause();
 	void UpdateDeathPhase();
@@ -173,7 +175,7 @@ private:
 
 	BitmapText text_;
 
-	// 一時停止中か。一時停止中は音量のメニューを出す
+	// 一時停止中か。一時停止中は「再開・再挑戦・終了・音量」のメニューを出す
 	bool isPaused_ = false;
 	VolumeMenu pauseMenu_;
 	BitmapText pauseText_;

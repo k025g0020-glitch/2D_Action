@@ -1,26 +1,37 @@
 #pragma once
 #include "BitmapText.h"
+#include <vector>
 
-// BGM と効果音の音量を変える画面（タイトルの SOUND と、ゲーム中の一時停止で使う）
-//   BGM  < =======--- >  70
-//   SE   < ========== > 100
-//   BACK（一時停止では RESUME）
+// 項目を縦に並べたメニュー。BGM と効果音の音量の行を入れられる
+// （タイトルの SOUND と、ゲーム中のポーズで使う）
+//     RESUME
+//     RETRY
+//   > BGM  < =======--- >  70
+//     SE   < ========== > 100
 class VolumeMenu {
 public:
-	// 開いた時に呼ぶ。selectClose が true なら一番下の項目（RESUME など）を、false なら BGM の行を選んだ状態にする
-	void Open(bool selectClose = false);
-	// 一番下の項目（BACK / RESUME）を選んで決定したら true。その時に音量を保存する
-	bool Update();
-	// title : 上に出す見出し、closeLabel : 一番下の項目の名前、top : 見出しの y 座標
-	void Draw(BitmapText& text, const char* title, const char* closeLabel, float top, float blinkTimer) const;
-
-private:
-	enum class Item {
-		kBgm,   // BGM の音量
-		kSe,    // 効果音の音量
-		kClose, // 閉じる（BACK / RESUME）
-		kCount,
+	enum class RowType {
+		kBgm,    // BGM の音量（A / D で変える）
+		kSe,     // 効果音の音量（A / D で変える）
+		kAction, // 決定する項目（BACK / RESUME / RETRY / QUIT など）
+	};
+	struct Row {
+		RowType type;
+		const char* label;
 	};
 
-	Item item_ = Item::kBgm;
+	void Initialize(const std::vector<Row>& rows);
+	// 開いた時に呼ぶ。selectedRow の行を選んだ状態にする
+	void Open(int selectedRow = 0);
+	// 決定する項目を選んで SPACE を押したら、その行の番号を返す（それ以外は -1）。決定した時に音量を保存する
+	int Update();
+	// title : 上に出す見出し、top : 見出しの y 座標、showHint : 下に操作説明を出すか
+	void Draw(BitmapText& text, const char* title, float top, float blinkTimer, bool showHint = true) const;
+
+	// 行と行の間隔
+	static inline const float kRowSpacing = 52.0f;
+
+private:
+	std::vector<Row> rows_;
+	int selected_ = 0;
 };

@@ -108,6 +108,13 @@ void GameScene::Initialize(GameSession* session) {
 
 	// 一時停止の画面
 	isPaused_ = false;
+	pauseMenu_.Initialize({
+	    {VolumeMenu::RowType::kAction, "RESUME"},
+	    {VolumeMenu::RowType::kAction, "RETRY"},
+	    {VolumeMenu::RowType::kAction, "QUIT"},
+	    {VolumeMenu::RowType::kBgm, "BGM"},
+	    {VolumeMenu::RowType::kSe, "SE"},
+	});
 	pauseText_.Initialize(320);
 	pauseOverlay_ = Sprite::Create(TextureManager::Load("white1x1.png"), {0.0f, 0.0f});
 	pauseOverlay_->SetSize({1280.0f, 720.0f});
@@ -222,7 +229,7 @@ void GameScene::SpawnObjectsFromMap() {
 }
 
 void GameScene::Update() {
-	// 遊んでいる間は P で一時停止できる。一時停止中はゲームを止めて、音量のメニューだけ動かす
+	// 遊んでいる間は ESC で一時停止できる。一時停止中はゲームを止めて、メニューだけ動かす
 	if (phase_ == Phase::kPlay && UpdatePause()) {
 		return;
 	}
@@ -592,24 +599,35 @@ void GameScene::Draw() {
 }
 
 bool GameScene::UpdatePause() {
+	// ポーズのメニューの行の番号（Initialize で並べた順）
+	enum PauseRow { kResume, kRetry, kQuit };
+
 	Input* input = Input::GetInstance();
 	if (!isPaused_) {
-		if (!input->TriggerKey(DIK_P)) {
+		if (!input->TriggerKey(DIK_ESCAPE)) {
 			return false;
 		}
 		isPaused_ = true;
 		pauseBlinkTimer_ = 0.0f;
 		// RESUME を選んだ状態で開き、すぐ戻れるようにする
-		pauseMenu_.Open(true);
+		pauseMenu_.Open(kResume);
 		SoundEffects::Play(SoundEffects::Id::kDecide);
 		return true;
 	}
 
 	pauseBlinkTimer_ += 1.0f / 60.0f;
-	// RESUME を選ぶか、もう一度 P を押したらゲームに戻る
-	if (pauseMenu_.Update() || input->TriggerKey(DIK_P)) {
+	const int selected = pauseMenu_.Update();
+	// RESUME を選ぶか、もう一度 ESC を押したらゲームに戻る
+	if (selected == kResume || input->TriggerKey(DIK_ESCAPE)) {
 		SoundSettings::Save();
 		isPaused_ = false;
+	} else if (selected == kRetry || selected == kQuit) {
+		// 再挑戦・終了は、フェードアウトしてからシーンを終える
+		isPaused_ = false;
+		result_ = (selected == kRetry) ? Result::kRetry : Result::kQuit;
+		BgmPlayer::Stop();
+		phase_ = Phase::kFadeOut;
+		fade_->Start(Fade::Status::FadeOut, kFadeDuration);
 	}
 	return true;
 }
@@ -623,7 +641,7 @@ void GameScene::DrawPause() {
 	Sprite::PostDraw();
 
 	pauseText_.Clear();
-	pauseMenu_.Draw(pauseText_, "PAUSE", "RESUME", 200.0f, pauseBlinkTimer_);
+	pauseMenu_.Draw(pauseText_, "PAUSE", 150.0f, pauseBlinkTimer_);
 	pauseText_.Draw();
 }
 

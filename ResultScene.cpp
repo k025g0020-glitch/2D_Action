@@ -38,6 +38,21 @@ void ResultScene::Initialize(GameSession* session, Type type) {
 	fade_ = new Fade();
 	fade_->Initialize();
 
+	// 選べること：クリアしたら「次のステージ（最後のステージでなければ）・再挑戦・終了」、ゲームオーバーなら「再挑戦・終了」
+	choices_.clear();
+	std::vector<VolumeMenu::Row> rows;
+	if (type_ == Type::kStageClear && !session_->IsLastStage()) {
+		choices_.push_back(Choice::kNextStage);
+		rows.push_back({VolumeMenu::RowType::kAction, "NEXT STAGE"});
+	}
+	choices_.push_back(Choice::kRetry);
+	rows.push_back({VolumeMenu::RowType::kAction, "RETRY"});
+	choices_.push_back(Choice::kQuit);
+	rows.push_back({VolumeMenu::RowType::kAction, "QUIT"});
+	menu_.Initialize(rows);
+	menu_.Open(0);
+	choice_ = Choice::kQuit;
+
 	remainingTime_ = session_->lastStageResult.remainingTime;
 	phase_ = (type_ == Type::kStageClear) ? Phase::kTally : Phase::kWait;
 	blinkTimer_ = 0.0f;
@@ -64,13 +79,15 @@ void ResultScene::Update() {
 		break;
 	}
 
-	case Phase::kWait:
-		if (input->TriggerKey(DIK_SPACE)) {
-			SoundEffects::Play(SoundEffects::Id::kDecide);
+	case Phase::kWait: {
+		const int selected = menu_.Update();
+		if (selected >= 0) {
+			choice_ = choices_[selected];
 			phase_ = Phase::kFadeOut;
 			fade_->Start(Fade::Status::FadeOut, kFadeDuration);
 		}
 		break;
+	}
 
 	case Phase::kFadeOut:
 		if (fade_->IsFinished()) {
@@ -93,9 +110,10 @@ void ResultScene::Draw() {
 		DrawGameOver();
 	}
 
-	// 入力待ちの間は「PRESS SPACE」を点滅させる
-	if (phase_ == Phase::kWait && std::fmod(blinkTimer_, 1.0f) < 0.6f) {
-		text_.Print("PRESS SPACE", 640.0f, 610.0f, 32.0f, {1.0f, 1.0f, 1.0f, 1.0f}, BitmapText::Align::kCenter);
+	// 入力待ちになったら、次にどうするかのメニューを出す
+	if (phase_ != Phase::kTally) {
+		const float top = (type_ == Type::kStageClear) ? 445.0f : 400.0f;
+		menu_.Draw(text_, "", top, blinkTimer_, false);
 	}
 
 	text_.Draw();

@@ -26,6 +26,11 @@ void TitleScene::Initialize() {
 	blinkTimer_ = 0.0f;
 	menuItem_ = MenuItem::kStart;
 	isSoundMenuOpen_ = false;
+	volumeMenu_.Initialize({
+	    {VolumeMenu::RowType::kBgm, "BGM"},
+	    {VolumeMenu::RowType::kSe, "SE"},
+	    {VolumeMenu::RowType::kAction, "BACK"},
+	});
 
 	// ゲーム画面と同じ高さ・距離から街並みを映す
 	camera_.Initialize();
@@ -66,7 +71,7 @@ void TitleScene::Update() {
 	case Phase::kMain:
 		if (isSoundMenuOpen_) {
 			// BACK で音量の設定を閉じる
-			if (volumeMenu_.Update()) {
+			if (volumeMenu_.Update() >= 0) {
 				isSoundMenuOpen_ = false;
 			}
 		} else {
@@ -90,7 +95,7 @@ void TitleScene::Draw() {
 
 	text_.Clear();
 	if (isSoundMenuOpen_) {
-		volumeMenu_.Draw(text_, "SOUND", "BACK", 320.0f, blinkTimer_);
+		volumeMenu_.Draw(text_, "SOUND", 320.0f, blinkTimer_);
 	} else {
 		DrawMenu();
 	}
@@ -145,5 +150,5 @@ void TitleScene::DrawMenu() {
 	text_.Print("A / D : MOVE", 640.0f, 550.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
 	text_.Print("SPACE / W : JUMP", 640.0f, 590.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
 	text_.Print("SHIFT : DASH", 640.0f, 630.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
-	text_.Print("P : PAUSE", 640.0f, 670.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
+	text_.Print("ESC : PAUSE", 640.0f, 670.0f, 28.0f, kWhite, BitmapText::Align::kCenter);
 }
