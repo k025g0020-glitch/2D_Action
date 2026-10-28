@@ -703,18 +703,12 @@ void GameScene::AddPopup(const Vector3& position, const std::string& text) { pop
 void GameScene::AddStompScore(const Vector3& position) {
 	++stompCombo_;
 
-	const size_t numScores = std::size(kStompScores);
-	if (stompCombo_ <= numScores) {
-		const uint32_t score = kStompScores[stompCombo_ - 1];
-		session_->AddScore(score);
-		AddPopup(position, std::to_string(score));
-		SoundEffects::Play(SoundEffects::Id::kStomp);
-	} else {
-		// 得点表を超えて踏み続けたら1UP
-		SoundEffects::Play(SoundEffects::Id::kOneUp);
-		session_->AddLife();
-		AddPopup(position, "残機+1");
-	}
+	// 得点表を超えて踏み続けた時は、表の一番高い得点のまま
+	const size_t index = (std::min)(static_cast<size_t>(stompCombo_), std::size(kStompScores)) - 1;
+	const uint32_t score = kStompScores[index];
+	session_->AddScore(score);
+	AddPopup(position, std::to_string(score));
+	SoundEffects::Play(SoundEffects::Id::kStomp);
 }
 
 void GameScene::GenerateBlocks() {

@@ -49,9 +49,6 @@ public:
 	bool IsFinished() const { return finished_; }
 	Result GetResult() const { return result_; }
 
-	// 着地せずに何体続けて敵を踏むと 1UP するか（得点表を超えて踏んだ時）
-	static constexpr uint32_t StompsForExtraLife() { return static_cast<uint32_t>(std::size(kStompScores)) + 1; }
-
 private:
 	// 画面に一瞬表示される得点などの文字
 	struct ScorePopup {
@@ -88,7 +85,7 @@ private:
 	// 残り時間がこれ以下になったら時間表示を赤くする
 	static inline const float kHurryTime = 30.0f;
 	static inline const uint32_t kCoinScore = 200;
-	// 着地せずに連続で敵を踏んだ時の得点（これを超えると1UP）
+	// 着地せずに連続で敵を踏んだ時の得点（これを超えて踏んだ時は一番高い得点のまま）
 	static inline const uint32_t kStompScores[] = {100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000};
 	static inline const float kPopupDuration = 0.8f;
 	static inline const float kPopupRiseSpeed = 0.03f;
