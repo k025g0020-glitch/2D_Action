@@ -2,6 +2,7 @@
 #include "GameScene.h"
 #include "BgmPlayer.h"
 #include "SoundEffects.h"
+#include "SoundSettings.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -104,6 +105,13 @@ void GameScene::Initialize(GameSession* session) {
 	stompCombo_ = 0;
 
 	text_.Initialize();
+
+	// 一時停止の画面
+	isPaused_ = false;
+	pauseText_.Initialize(320);
+	pauseOverlay_ = Sprite::Create(TextureManager::Load("white1x1.png"), {0.0f, 0.0f});
+	pauseOverlay_->SetSize({1280.0f, 720.0f});
+	pauseOverlay_->SetColor({0.0f, 0.0f, 0.0f, 0.6f});
 
 	fade_ = new Fade();
 	fade_->Initialize();
@@ -214,6 +222,10 @@ void GameScene::SpawnObjectsFromMap() {
 }
 
 void GameScene::Update() {
+	// 遊んでいる間は P で一時停止できる。一時停止中はゲームを止めて、音量のメニューだけ動かす
+	if (phase_ == Phase::kPlay && UpdatePause()) {
+		return;
+	}
 
 	if (fade_) {
 		fade_->Update();
@@ -572,10 +584,47 @@ void GameScene::Draw() {
 	Model::PostDraw();
 
 	DrawHud();
+	DrawPause();
 
 	if (fade_) {
 		fade_->Draw();
 	}
+}
+
+bool GameScene::UpdatePause() {
+	Input* input = Input::GetInstance();
+	if (!isPaused_) {
+		if (!input->TriggerKey(DIK_P)) {
+			return false;
+		}
+		isPaused_ = true;
+		pauseBlinkTimer_ = 0.0f;
+		// RESUME を選んだ状態で開き、すぐ戻れるようにする
+		pauseMenu_.Open(true);
+		SoundEffects::Play(SoundEffects::Id::kDecide);
+		return true;
+	}
+
+	pauseBlinkTimer_ += 1.0f / 60.0f;
+	// RESUME を選ぶか、もう一度 P を押したらゲームに戻る
+	if (pauseMenu_.Update() || input->TriggerKey(DIK_P)) {
+		SoundSettings::Save();
+		isPaused_ = false;
+	}
+	return true;
+}
+
+void GameScene::DrawPause() {
+	if (!isPaused_) {
+		return;
+	}
+	Sprite::PreDraw();
+	pauseOverlay_->Draw();
+	Sprite::PostDraw();
+
+	pauseText_.Clear();
+	pauseMenu_.Draw(pauseText_, "PAUSE", "RESUME", 200.0f, pauseBlinkTimer_);
+	pauseText_.Draw();
 }
 
 void GameScene::DrawHud() {
@@ -753,6 +802,7 @@ void GameScene::CheckAllCollisions() {
 }
 
 GameScene::~GameScene() {
+	delete pauseOverlay_;
 	delete model_;
 	delete player_;
 	for (Enemy* enemy : enemies_) {

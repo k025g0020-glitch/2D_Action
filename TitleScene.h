@@ -3,6 +3,7 @@
 #include "CityBackground.h"
 #include "Fade.h"
 #include "KamataEngine.h"
+#include "VolumeMenu.h"
 
 class TitleScene {
 public:
@@ -29,18 +30,9 @@ private:
 		kSound, // 音量の設定を開く
 		kCount,
 	};
-	// 音量の設定の項目
-	enum class SoundItem {
-		kBgm,  // BGM の音量
-		kSe,   // 効果音の音量
-		kBack, // メニューに戻る
-		kCount,
-	};
 
 	void UpdateMenu();
-	void UpdateSoundMenu();
 	void DrawMenu();
-	void DrawSoundMenu();
 
 	// フェード時間（秒）
 	static inline const float kFadeDuration = 1.0f;
@@ -69,5 +61,5 @@ private:
 	// 選んでいるメニューの項目と、音量の設定を開いているか
 	MenuItem menuItem_ = MenuItem::kStart;
 	bool isSoundMenuOpen_ = false;
-	SoundItem soundItem_ = SoundItem::kBgm;
+	VolumeMenu volumeMenu_;
 };

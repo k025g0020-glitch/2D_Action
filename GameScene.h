@@ -14,6 +14,7 @@
 #include "ParticleSystem.h"
 #include "Player.h"
 #include "ShockGrenade.h"
+#include "VolumeMenu.h"
 #include "calc.h"
 #include <list>
 #include <string>
@@ -55,6 +56,9 @@ private:
 	};
 
 	void UpdatePlayPhase();
+	// 一時停止（P キー）。一時停止中は true を返し、ゲームの更新を止める
+	bool UpdatePause();
+	void DrawPause();
 	void UpdateDeathPhase();
 	// 天球・敵・コインなど、どのフェーズでも動かすオブジェクトの更新
 	void UpdateStageObjects();
@@ -168,6 +172,14 @@ private:
 	static inline const uint32_t kRisingLightInterval = 5;
 
 	BitmapText text_;
+
+	// 一時停止中か。一時停止中は音量のメニューを出す
+	bool isPaused_ = false;
+	VolumeMenu pauseMenu_;
+	BitmapText pauseText_;
+	// 一時停止中にゲーム画面を暗くする黒い板
+	KamataEngine::Sprite* pauseOverlay_ = nullptr;
+	float pauseBlinkTimer_ = 0.0f;
 	std::list<ScorePopup> popups_;
 
 	bool isDebugCameraActive_ = false;

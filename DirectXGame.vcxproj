@@ -188,6 +188,7 @@
     <ClCompile Include="BgmPlayer.cpp" />
     <ClCompile Include="SoundEffects.cpp" />
     <ClCompile Include="SoundSettings.cpp" />
+    <ClCompile Include="VolumeMenu.cpp" />
     <ClCompile Include="TitleScene.cpp" />
     <ClCompile Include="WorldTransformConfig.cpp" />
   </ItemGroup>
@@ -314,6 +315,8 @@
     <ClInclude Include="BgmPlayer.h" />
     <ClInclude Include="SoundEffects.h" />
     <ClInclude Include="SoundSettings.h" />
+    <ClInclude Include="VolumeMenu.h" />
+    <ClInclude Include="MenuInput.h" />
     <ClInclude Include="TitleScene.h" />
     <ClInclude Include="WorldTransformConfig.h" />
   </ItemGroup>
