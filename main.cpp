@@ -63,8 +63,6 @@ void StartResult(ResultScene::Type type) {
 }
 
 // シーン切り替え処理
-// タイトル → ステージ紹介 → ゲーム → (クリア) リザルト → 次のステージ紹介 …
-//                                   → (ミス) 残機があればステージ紹介、なければゲームオーバー
 void ChangeScene() {
 	switch (scene) {
 	case Scene::kTitle:
